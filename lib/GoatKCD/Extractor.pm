@@ -28,10 +28,12 @@ def intersect(line1,line2):
  return False
 
 def areas(path):
+
  img = cv2.imread(path)
  height,width,depth = img.shape
  gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
  edges = cv2.Canny(gray,20,255,apertureSize = 3)
+
  if (height>width):
   minLineLength = int(height/5)
  else:

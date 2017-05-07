@@ -4,6 +4,7 @@ package GoatKCD;
 
 use strict;
 use GoatKCD::Extractor;
+use GoatKCD::Extract::OpenCV;
 use LWP::UserAgent;
 use HTTP::Message;
 use Image::Magick;
@@ -14,6 +15,7 @@ use Try::Tiny;
 use List::Util;
 use Getopt::Long;
 use Moose;
+use Time::HiRes;
 use feature qw(say);
 
 our $VERSION = "1.0.0";
@@ -34,7 +36,7 @@ has auto_goatify=>(is=>'rw',isa=>'Str',default=>sub { 1; });
 
 sub summon_the_goatman {
 	my ($self,$path) = @_;
-	
+
 	$self->reset();
 	my $canvas = $self->load_canvas($path);
 	$self->error(undef);
@@ -106,7 +108,6 @@ sub goatify {
 
 
 	my @panels = $self->panels;
-	
 	my $canvas = $self->canvas->Clone();
 
 	foreach my $rect (@panels) {
@@ -280,11 +281,12 @@ sub extract_rows {
 	my $rows=[];
 	my $tmpf = $self->mktmp($img);
 
-	try {
-		$rows = GoatKCD::Extractor::areas($tmpf);
-	} catch {
-		$self->error("Unable to detect rows: ".$@);
-	};
+	#my $t = Time::HiRes::time;
+	my $extracter = GoatKCD::Extract::OpenCV->new();
+	say STDERR Dumper($extracter->extract($tmpf));
+	#say (Time::HiRes::time-$t);
+	$rows = GoatKCD::Extractor::areas($tmpf);
+	#say (Time::HiRes::time-$t);
 
 	return wantarray?@$rows:$rows;
 }

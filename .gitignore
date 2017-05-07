@@ -4,3 +4,7 @@ originals
 blib
 special_cases
 dependencies
+*.out
+*.swp
+*.o
+scratch

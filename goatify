@@ -27,7 +27,3 @@ my $gkcd = GoatKCD->new(
 #my $img = $gkcd->summon_the_goatman(sprintf("/home/fatty/workspace/auto_goatkcd/originals/%s.png",$ARGV[0]))->Display();
 $gkcd->summon_the_goatman($ARGV[0])->Display();
 
-say $gkcd->panelcount;
-
-say $gkcd->rowcount;
-
