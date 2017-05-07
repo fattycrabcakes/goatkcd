@@ -4,7 +4,7 @@ package GoatKCD;
 
 use strict;
 use GoatKCD::Extractor;
-use GoatKCD::Extract::OpenCV;
+use GoatKCD::Extractor::OpenCV;
 use LWP::UserAgent;
 use HTTP::Message;
 use Image::Magick;
@@ -32,6 +32,7 @@ has 'debug_data'=>(is=>'rw',isa=>'Any',default=>sub { []; });
 has error=>(is=>'rw');
 has 'pad_by'=>(is=>'rw',isa=>'Int',default=> sub { 20; });
 has tmpdir=>(is=>'rw',isa=>'Str',default=>sub { "/tmp/"; });
+has processor=>(is=>'rw',isa=>'GoatKCD::Extractor',default=>sub {GoatKCD::Extractor->new(parent=>shift);});
 has auto_goatify=>(is=>'rw',isa=>'Str',default=>sub { 1; });
 
 sub summon_the_goatman {
@@ -86,13 +87,10 @@ sub summon_the_goatman {
 			}
 		}
 	}
-	$self->cleartmp();
+	#$self->cleartmp();
 
 	# consolidate touching columns
 	$self->log("Rows after row processing",$rows);
-
-	$rows = $self->collapse_columns($rows);
-	$rows = $self->collapse_rows($rows);
 
 	$self->rows($rows);
 
@@ -143,69 +141,6 @@ sub panelcount {
 	return scalar(@panels);
 }
 
-
-
-sub collapse_columns {
-	my ($self,$rows) = @_;
-
-	while (1) {
-        my $changed=0;
-        foreach my $row (@$rows) {
-            my @row_tmp;
-            for (my $i=0;$i<scalar(@$row);$i++) {
-                my $column = $row->[$i];
-                next if (!defined $column);
-                my $next_column = $row->[$i+1];
-                if ($next_column) {
-                    if ($column->[2]==$next_column->[0]) {
-                        $changed = 1;
-                        $column->[2] = $next_column->[2];
-                        $row->[$i+1] = undef;
-                    }
-                }
-                push(@row_tmp,$column);
-            }
-            $row = [@row_tmp];
-        }
-        last if (!$changed);
-    }
-	return $rows;
-}
-
-sub collapse_rows {
-	my ($self,$rows) = @_;
-
-	while (1) {
-        my @row_tmp;
-        my $changed = 0;
-        for (my $i=0;$i<scalar(@$rows);$i++) {
-            my $row = $rows->[$i];
-            my $next_row = $rows->[$i+1];
-            next if (!$row);
-            if (!$next_row) {
-                push(@row_tmp,$row);
-                last;
-            }
-            if (scalar(@$row)==scalar(@$next_row)) { # same number of columns.
-                for (my $j=0;$j<scalar(@$row);$j++) {
-                    if ($row->[$j]->[3]==$next_row->[$j]->[1]) {
-                        $row->[$j]->[3] = $next_row->[$j]->[3];
-                        $rows->[$i+1]=undef;
-                        $changed=1;
-                    }
-                }
-            }
-            push(@row_tmp,$row);
-        }
-        $rows = [@row_tmp];
-        last if (!$changed);
-    }
-	
-	return $rows;
-
-}
-
-
 sub log {
 	my ($self,$label,$stuff) = @_;
 
@@ -246,7 +181,6 @@ sub load_canvas {
     $canvas->Set(size=>($w+$self->pad_by)."x".($h+$self->pad_by));
     $canvas->Read('xc:white');
     $canvas->Composite(image=>$tmp,compose=>"over",gravity=>"Center");
-
 	$self->canvas($canvas);
 
 	return $self->canvas;
@@ -257,6 +191,7 @@ sub mktmp {
 
 
 	my $p = join("/",$self->tmpdir,$self->tmpfile);	
+
 	$img->Write($p);
 	return $p;
 }
@@ -280,14 +215,7 @@ sub extract_rows {
 
 	my $rows=[];
 	my $tmpf = $self->mktmp($img);
-
-	#my $t = Time::HiRes::time;
-	my $extracter = GoatKCD::Extract::OpenCV->new();
-	say STDERR Dumper($extracter->extract($tmpf));
-	#say (Time::HiRes::time-$t);
-	$rows = GoatKCD::Extractor::areas($tmpf);
-	#say (Time::HiRes::time-$t);
-
+	$rows = $self->processor->extract($tmpf);
 	return wantarray?@$rows:$rows;
 }
 

@@ -1,29 +1,91 @@
 #!/usr/bin/env perl
 
-use strict;
-use lib qw(./lib);
-use feature qw(say);
-use Data::Dumper;
 use GoatKCD;
+use Data::Dumper;
+use Term::ReadLine;
+use feature qw(say);
 
-my $beast_mode = 1;
-my $file = '';
-my $url = '';
-my $comic_number = 0;
-my $latest = 0;
-my $dir = '';
-our $display=0;
-our $debug=0;
-my $opd='';
-our $output_file_name;
+my $line;
+my $gkcd = GoatKCD->new();
+my $term = Term::ReadLine->new();
 
-my $gkcd = GoatKCD->new(
-	beastmode=>1,
-	tmpdir=>"./tmp",
-	debug=>1,
-	auto_goatify=>1,
-);
+say "HEY NOW ".File::ShareDir::module_dir('GoatKCD','hello.jpg');
 
-#my $img = $gkcd->summon_the_goatman(sprintf("/home/fatty/workspace/auto_goatkcd/originals/%s.png",$ARGV[0]))->Display();
-$gkcd->summon_the_goatman($ARGV[0])->Display();
+if (-f $ARGV[0]) {
+	$gkcd->summon_the_goatman($ARGV[0])->Display();
+	exit;
+}
 
+while ($line ne "quit") {
+	$line = $term->readline("Comic Number: ");
+	my ($command,@args) = split(/ /,$line);
+	if (main->can($command)) {
+		main->$command(@args);
+	} else {
+		usage();
+	}
+}
+
+sub quit {
+	exit;
+}
+
+sub show {
+	my ($class,$file) = @_;
+
+	if (-f $file) {
+		$gkcd->summon_the_goatman($file)->Display();
+	} else {
+		say STDERR "Say what now?";
+	}
+}
+
+sub process {
+	my ($class,$file,$saveas) = @_;
+
+    if (-f $file) {
+        my $img = $gkcd->summon_the_goatman($file);
+		$img->Write($saveas);
+		$img->Display();
+    } else {
+        say STDERR "Bad source.";
+    }
+}
+
+
+sub beastmode {
+	my $class = shift;
+	my $flag = shift;
+
+	$gkcd->beastmode($flag);
+}
+
+sub minlength {
+	my ($class,$flag) = @_;
+
+	$gkcd->processor->min_line_length($flag);
+}
+
+sub debug {
+	my ($class,$flag) = @_;
+
+	$gkcd->debug($flag);
+}
+
+sub stinger {
+	my ($class,$img) = @_;
+
+	if (-f $img) {
+		$gkcd->stinger($gkcd->load_img($img));
+	}
+}
+
+sub proximity {
+	my ($class,$prox) = @_;
+
+	$gkcd->processor->collapse_proximity($prox);
+}
+
+sub usage() {
+	say "LOL";
+}	

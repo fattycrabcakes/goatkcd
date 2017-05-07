@@ -8,3 +8,6 @@ dependencies
 *.swp
 *.o
 scratch
+Makefile
+Makefile.old
+pm_to_blib
