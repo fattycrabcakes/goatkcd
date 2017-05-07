@@ -10,7 +10,7 @@
 #include <stdio.h>
 
 
-SV* process_lines(char* filename,int minLength) {
+SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) {
 
     IplImage* src = cvLoadImage( filename, 0 );
 
@@ -27,10 +27,6 @@ SV* process_lines(char* filename,int minLength) {
 
     cvCanny( src, dst, 50, 200, 3 );
     //cvCvtColor( dst, color_dst, CV_GRAY2BGR );
-
-	int rho=50;
-	int theta = 50;
-	int threshold = 1;
 
     lines = cvHoughLines2( dst, cvCreateMemStorage(0), CV_HOUGH_PROBABILISTIC, 1, CV_PI/180, rho, theta, threshold );
 
@@ -76,11 +72,14 @@ MODULE = GoatKCD::Extractor::OpenCV  PACKAGE = GoatKCD::Extractor::OpenCV
 PROTOTYPES: DISABLE
 
 SV*
-getlines(input,minLength)
+getlines(input,minLength,rho,theta,threshold)
 	char* input
 	int minLength
+	int rho
+	int theta
+	int threshold
 	CODE:
-		RETVAL = process_lines(input,minLength);
+		RETVAL = process_lines(input,minLength,rho,theta,threshold);
 	OUTPUT:
 		RETVAL
 

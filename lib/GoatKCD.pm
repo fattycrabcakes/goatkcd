@@ -16,6 +16,7 @@ use List::Util;
 use Getopt::Long;
 use Moose;
 use Time::HiRes;
+use Web::Scraper;
 use feature qw(say);
 
 our $VERSION = "1.0.0";
@@ -24,23 +25,21 @@ $Data::Dumper::Terse=1;
 
 has 'beastmode'=>(is=>'rw',isa=>'Bool',default=>sub { 0; });
 has 'tmpfile'=>(is=>'rw',isa=>'Str',default=>sub { sprintf("%d-%d.png",$$,time()); });
-has 'debug'=>(is=>'rw',isa=>'Str',default=>sub { 0; });
+has 'debug'=>(is=>'rw',isa=>'Int',default=>sub { 0; });
 has 'canvas'=>(is=>'rw',isa=>'Image::Magick');
 has 'rows'=>(is=>'rw',isa=>'Any',default=>sub { []; });
 has 'stinger'=>(is=>'rw',isa=>'Image::Magick',default=>sub {__PACKAGE__->load_img("/usr/share/goatkcd/hello.jpg");});
-has 'debug_data'=>(is=>'rw',isa=>'Any',default=>sub { []; });
-has error=>(is=>'rw');
 has 'pad_by'=>(is=>'rw',isa=>'Int',default=> sub { 20; });
 has tmpdir=>(is=>'rw',isa=>'Str',default=>sub { "/tmp/"; });
 has processor=>(is=>'rw',isa=>'GoatKCD::Extractor',default=>sub {GoatKCD::Extractor->new(parent=>shift);});
 has auto_goatify=>(is=>'rw',isa=>'Str',default=>sub { 1; });
+has maxheight=>(is=>'rw',isa=>'Int',default=>sub { 640; });
 
 sub summon_the_goatman {
 	my ($self,$path) = @_;
 
 	$self->reset();
 	my $canvas = $self->load_canvas($path);
-	$self->error(undef);
 
 	my $rows;
 	my $y_offset = 0;
@@ -149,24 +148,49 @@ sub log {
 			$stuff = Dumper($stuff);
 		}
 		say STDERR "$label: ".$stuff;
-		push(@{$self->debug_data},[$label,$stuff]);
 	}
+}
+
+sub error_img {
+	my $self = shift;
+
+	my $img = Image::Magick->new();
+	$img->ReadImage("/usr/share/goatkcd/error.png");
+	
+	return $img;
 }
 
 sub load_img {
 	my ($self,$data) = @_;
-
 	my $img = Image::Magick->new();
 
-	if (ref($data) eq "CODE") {
+	if (!defined $data) {
+		return $self->error_img();
+	} elsif (ref($data) eq "CODE") {
 		$img->ReadImage($data->($self));
 	} elsif (-f $data) {
 		$img->ReadImage($data);
-	} elsif ($data=~/^http/i) {
-		# url handling
+	} elsif ($data=~/^(?:http|\/\/)/i) {
+		try {
+			if ($data=~/^\/\//) {
+				$data="http:";
+			}
+			my $ua = LWP::UserAgent->new();
+			my $res = $ua->get($data);
+			$img->BlobToImage($res->content);
+
+		} catch {
+			$self->log("error",$@);
+			return $self->error_img();
+		}
 	} else {
 		$img->BlobToImage($data);
 	}
+	if (!$img) {
+		$self->log("error",$@);
+		return $self->error_img();
+	}
+
 	return $img;
 }
 
@@ -207,7 +231,6 @@ sub reset {
 	my $self = shift;
 
 	$self->rows([]);
-	$self->error(undef);
 }
 
 sub extract_rows {
@@ -215,7 +238,7 @@ sub extract_rows {
 
 	my $rows=[];
 	my $tmpf = $self->mktmp($img);
-	$rows = $self->processor->extract($tmpf);
+	$rows = $self->processor->extract($tmpf,$img);
 	return wantarray?@$rows:$rows;
 }
 
@@ -273,10 +296,6 @@ sub is_irregular {
 	}
 	return 0;
 }
-	
-	
-
-	
 
 __PACKAGE__->meta->make_immutable;
 1;

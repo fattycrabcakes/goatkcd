@@ -11,15 +11,23 @@ use Cv;
 
 has min_line_length => (is=>'rw',isa=>'Int',default=>sub { 20; });
 has max_line_gap => (is=>'rw',isa=>'Int',default=>sub { 25; });
-has min_rect_thickness =>(is=>'rw',isa=>'Int',default=>sub { 15; });
-has collapse_proximity=>(is=>'rw',isa=>'Int',default=>sub { 7.5; });
+has min_rect_thickness =>(is=>'rw',isa=>'Int',default=>sub { 35; });
+has collapse_proximity=>(is=>'rw',isa=>'Int',default=>sub { 7; });
+has rho=>(is=>"rw",isa=>"Int",default=>sub { 50; });
+has theta=>(is=>"rw",isa=>"Int",default=>sub { 50; });
+has threshold=>(is=>"rw",isa=>"Int",default=>sub { 10; });
+
+
 has parent=>(is=>'ro',isa=>'GoatKCD');
+has canvas=>(is=>'rw',isa=>'Image::Magick');
 
 
 sub extract {
-	my ($self,$imgpath) = @_;
+	my ($self,$imgpath,$canvas) = @_;
 
-	my $lines = GoatKCD::Extractor::OpenCV::getlines($imgpath,$self->min_line_length);
+	$self->canvas($canvas);
+
+	my $lines = GoatKCD::Extractor::OpenCV::getlines($imgpath,$self->min_line_length,$self->rho,$self->theta,$self->threshold);
 
 	my $minX = min map {$_->[0]} @$lines;
 	my $maxX = max map {$_->[2]} @$lines;
@@ -77,8 +85,6 @@ sub extract {
 		push(@rows,[grep {$_->[1]==$y} @rects]);
 	}
 
-	$self->parent->log("Before Collapse",[@rows]);
-
 	@rows = $self->collapse_columns(@rows);
 	@rows = $self->collapse_rows(@rows);
 
@@ -97,11 +103,26 @@ sub collapse_columns {
                 next if (!defined $column);
                 my $next_column = $row->[$i+1];
                 if ($next_column) {
-                    #if (abs($column->[2]-$next_column->[0])<$self->min_rect_thickness) {
 					if ($column->[2]==$next_column->[0]) {
-                        $changed = 1;
-                        $column->[2] = $next_column->[2];
-                        $row->[$i+1] = undef;
+						my $xv = $next_column->[0]+int(($next_column->[2]-$next_column->[0])/2);
+                    	my $yv = $column->[3];
+
+                     	my @pa = $self->canvas->GetPixels(
+                           	width=>1,
+                           	height=>$self->collapse_proximity,
+                           	x=>$next_column->[0]+int(($next_column->[2]-$next_column->[0])/2),
+                           	y=>$yv-($self->collapse_proximity/2),
+                        );
+
+						my $avg = List::Util::sum(@pa)/scalar(@pa);
+						if ($avg!=$pa[0]) {
+                        	$changed = 1;
+                        	$column->[2] = $next_column->[2];
+                        	$row->[$i+1] = undef;
+						} else {
+							$next_column->[0]+=5;
+							$next_column->[2]-=5;
+						}
                     }
                 }
                 push(@row_tmp,$column);

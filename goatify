@@ -3,13 +3,14 @@
 use GoatKCD;
 use Data::Dumper;
 use Term::ReadLine;
+use Web::Scraper;
+use URI;
 use feature qw(say);
 
 my $line;
 my $gkcd = GoatKCD->new();
 my $term = Term::ReadLine->new();
 
-say "HEY NOW ".File::ShareDir::module_dir('GoatKCD','hello.jpg');
 
 if (-f $ARGV[0]) {
 	$gkcd->summon_the_goatman($ARGV[0])->Display();
@@ -33,31 +34,14 @@ sub quit {
 sub show {
 	my ($class,$file) = @_;
 
-	if (-f $file) {
-		$gkcd->summon_the_goatman($file)->Display();
-	} else {
-		say STDERR "Say what now?";
-	}
+	summon($file)->Display();
 }
-
-sub process {
-	my ($class,$file,$saveas) = @_;
-
-    if (-f $file) {
-        my $img = $gkcd->summon_the_goatman($file);
-		$img->Write($saveas);
-		$img->Display();
-    } else {
-        say STDERR "Bad source.";
-    }
-}
-
 
 sub beastmode {
 	my $class = shift;
 	my $flag = shift;
 
-	$gkcd->beastmode($flag);
+	$gkcd->beastmode($gkcd->beastmode^1);
 }
 
 sub minlength {
@@ -67,9 +51,9 @@ sub minlength {
 }
 
 sub debug {
-	my ($class,$flag) = @_;
+	my ($class) = @_;
 
-	$gkcd->debug($flag);
+	$gkcd->debug($gkcd->debug^1);
 }
 
 sub stinger {
@@ -80,12 +64,32 @@ sub stinger {
 	}
 }
 
+sub minrect{
+	my ($class,$size) = @_;
+
+	$gkcd->processor->min_rect_thickness($size);
+}
+
 sub proximity {
 	my ($class,$prox) = @_;
 
 	$gkcd->processor->collapse_proximity($prox);
 }
 
+sub comic {
+	my ($class,$id) = @_;
+
+	my $res = scraper {
+		process 'div#comic > img',img=>'@src';
+	}->scrape(URI->new("https://xkcd.com/$id"));
+
+	summon($res->{img})->Display();
+}
+
+sub summon {
+	my $what = shift;
+	return $gkcd->summon_the_goatman($what);
+}
 sub usage() {
 	say "LOL";
 }	

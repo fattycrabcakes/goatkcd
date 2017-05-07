@@ -19,7 +19,7 @@
 #include <stdio.h>
 
 
-SV* process_lines(char* filename,int minLength) {
+SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) {
 
     IplImage* src = cvLoadImage( filename, 0 );
 
@@ -36,10 +36,6 @@ SV* process_lines(char* filename,int minLength) {
 
     cvCanny( src, dst, 50, 200, 3 );
     //cvCvtColor( dst, color_dst, CV_GRAY2BGR );
-
-	int rho=50;
-	int theta = 50;
-	int threshold = 1;
 
     lines = cvHoughLines2( dst, cvCreateMemStorage(0), CV_HOUGH_PROBABILISTIC, 1, CV_PI/180, rho, theta, threshold );
 
@@ -81,7 +77,7 @@ SV* process_lines(char* filename,int minLength) {
 }
 
 
-#line 85 "lib/GoatKCD/Extractor/OpenCV.c"
+#line 81 "lib/GoatKCD/Extractor/OpenCV.c"
 #ifndef PERL_UNUSED_VAR
 #  define PERL_UNUSED_VAR(var) if (0) var = var
 #endif
@@ -225,23 +221,29 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 #  define newXS_deffile(a,b) Perl_newXS_deffile(aTHX_ a,b)
 #endif
 
-#line 229 "lib/GoatKCD/Extractor/OpenCV.c"
+#line 225 "lib/GoatKCD/Extractor/OpenCV.c"
 
 XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_getlines); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_getlines)
 {
     dVAR; dXSARGS;
-    if (items != 2)
-       croak_xs_usage(cv,  "input, minLength");
+    if (items != 5)
+       croak_xs_usage(cv,  "input, minLength, rho, theta, threshold");
     {
 	char*	input = (char *)SvPV_nolen(ST(0))
 ;
 	int	minLength = (int)SvIV(ST(1))
 ;
+	int	rho = (int)SvIV(ST(2))
+;
+	int	theta = (int)SvIV(ST(3))
+;
+	int	threshold = (int)SvIV(ST(4))
+;
 	SV *	RETVAL;
-#line 83 "lib/GoatKCD/Extractor/OpenCV.xs"
-		RETVAL = process_lines(input,minLength);
-#line 245 "lib/GoatKCD/Extractor/OpenCV.c"
+#line 82 "lib/GoatKCD/Extractor/OpenCV.xs"
+		RETVAL = process_lines(input,minLength,rho,theta,threshold);
+#line 247 "lib/GoatKCD/Extractor/OpenCV.c"
 	RETVAL = sv_2mortal(RETVAL);
 	ST(0) = RETVAL;
     }
@@ -260,9 +262,9 @@ XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_echo)
 ;
 	int	RETVAL;
 	dXSTARG;
-#line 92 "lib/GoatKCD/Extractor/OpenCV.xs"
+#line 91 "lib/GoatKCD/Extractor/OpenCV.xs"
     RETVAL = (input % 2 == 0);
-#line 266 "lib/GoatKCD/Extractor/OpenCV.c"
+#line 268 "lib/GoatKCD/Extractor/OpenCV.c"
 	XSprePUSH; PUSHi((IV)RETVAL);
     }
     XSRETURN(1);
