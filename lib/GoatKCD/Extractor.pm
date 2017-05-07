@@ -12,7 +12,7 @@ use Cv;
 has min_line_length => (is=>'rw',isa=>'Int',default=>sub { 20; });
 has max_line_gap => (is=>'rw',isa=>'Int',default=>sub { 25; });
 has min_rect_thickness =>(is=>'rw',isa=>'Int',default=>sub { 15; });
-has collapse_proximity=>(is=>'rw',isa=>'Int',default=>sub { 15; });
+has collapse_proximity=>(is=>'rw',isa=>'Int',default=>sub { 7.5; });
 has parent=>(is=>'ro',isa=>'GoatKCD');
 
 
