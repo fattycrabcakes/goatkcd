@@ -26,7 +26,7 @@ $Data::Dumper::Terse=1;
 has 'beastmode'=>(is=>'rw',isa=>'Bool',default=>sub { 0; });
 has 'tmpfile'=>(is=>'rw',isa=>'Str',default=>sub { sprintf("%d-%d.png",$$,time()); });
 has 'debug'=>(is=>'rw',isa=>'Int',default=>sub { 0; });
-has 'canvas'=>(is=>'rw',isa=>'Image::Magick',weak_ref=>1);
+has 'canvas'=>(is=>'rw',isa=>'Image::Magick');
 has 'rows'=>(is=>'rw',isa=>'Any',default=>sub { []; });
 has 'stinger'=>(is=>'rw',isa=>'Image::Magick',default=>sub {__PACKAGE__->load_img("/usr/share/goatkcd/hello.jpg");});
 has 'pad_by'=>(is=>'rw',isa=>'Int',default=> sub { 20; });
@@ -125,10 +125,10 @@ sub goatify {
 }
 
 sub panels {
-	my ($self) = @_;
+	my ($self,$force) = @_;
 
 	my @rows = @{$self->rows};
-	if ($self->beastmode) {
+	if ($self->beastmode || $force) {
         return (map {@$_} @rows);
 
     } else {
@@ -285,6 +285,26 @@ sub row {
 	return $self->rows->[$y]||[];
 }
 
+sub dismember {
+	my ($self) = @_;
+
+	my @ret;
+	foreach my $panel ($self->panels(1)) {
+		my ($w,$h) = ($panel->[2]-$panel->[0],$panel->[3]-$panel->[1]);
+		my $img = $self->canvas->Clone();
+		$img->Crop(
+			width=>$w,
+			height=>$h,
+			x=>$panel->[0],
+			y=>$panel->[1],
+		);
+		push(@ret,$img);
+	}
+	return @ret;
+}
+
+		
+
 	
 
 sub panel {
@@ -308,6 +328,12 @@ sub average_columns {
 	my $self = shift;
 	
 	return  int((List::Util::sum map {scalar(@$_)} @{$self->rows})/scalar(@{$self->rows}));
+}
+
+sub set_stinger {
+	my ($self,$file) = @_;
+
+	$self->stinger($self->load_img($file));
 }
 
 sub is_irregular {
