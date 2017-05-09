@@ -26,7 +26,7 @@ $Data::Dumper::Terse=1;
 has 'beastmode'=>(is=>'rw',isa=>'Bool',default=>sub { 0; });
 has 'tmpfile'=>(is=>'rw',isa=>'Str',default=>sub { sprintf("%d-%d.png",$$,time()); });
 has 'debug'=>(is=>'rw',isa=>'Int',default=>sub { 0; });
-has 'canvas'=>(is=>'rw',isa=>'Image::Magick');
+has 'canvas'=>(is=>'rw',isa=>'Image::Magick',weak_ref=>1);
 has 'rows'=>(is=>'rw',isa=>'Any',default=>sub { []; });
 has 'stinger'=>(is=>'rw',isa=>'Image::Magick',default=>sub {__PACKAGE__->load_img("/usr/share/goatkcd/hello.jpg");});
 has 'pad_by'=>(is=>'rw',isa=>'Int',default=> sub { 20; });
@@ -107,6 +107,10 @@ sub goatify {
 	my @panels = $self->panels;
 	my $canvas = $self->canvas->Clone();
 
+	if (!defined $panels[0]) {
+		$panels[0] = [0,0,$self->canvas->Get("width","height")];
+	}
+
 	foreach my $rect (@panels) {
 		my $stinger_tmp = $self->stinger->Clone();
 		$stinger_tmp->Resize(geometry=>($rect->[2]-$rect->[0])."x".($rect->[3]-$rect->[1]."!"));
@@ -116,7 +120,7 @@ sub goatify {
 	}
 
 	# unpad canvas
-	#$canvas->Crop(width=>$canvas->Get("width")-20,height=>$canvas->Get("height")-20,x=>10,y=>10);
+	$canvas->Crop(width=>$canvas->Get("width")-20,height=>$canvas->Get("height")-20,x=>10,y=>10);
 	return $canvas;
 }
 
@@ -164,8 +168,6 @@ sub load_img {
 	my ($self,$data) = @_;
 	my $img = Image::Magick->new();
 
-	say STDERR "LOADING $data\n";
-	
 	if (!defined $data) {
 		return $self->error_img();
 	} elsif (ref($data) eq "CODE") {
@@ -178,12 +180,14 @@ sub load_img {
 				$data="http:";
 			}
 			my $ua = LWP::UserAgent->new();
-			my $res = $ua->get($data);
+			$ua->agent('Mozilla/5.0 (X11; U; Linux x86_64; en-US) AppleWebKit/532.0 (KHTML, like Gecko) Chrome/4.0.202.0 Safari/532.0');
+    		my $res = $ua->get($data,'Accept-Encoding'=>HTTP::Message::decodable);
+
 			if (!$res->is_success) {
 				say STDERR $res->status_line;
 				return $self->error_img();
 			} else {
-				$img->BlobToImage($res->content);
+				$img->BlobToImage($res->decoded_content);
 			}
 
 		} catch {
@@ -213,6 +217,11 @@ sub load_canvas {
 		$w*=$rsb;
 		$h*=$rsb;
 		$tmp->Resize(geometry=>"$w"."x".$h);
+	} elsif ($h>700) {
+		 my $rsb = 700/$w;
+        $w*=$rsb;
+        $h*=$rsb;
+        $tmp->Resize(geometry=>"$w"."x".$h);
 	}
 
 	my $canvas = Image::Magick->new();
@@ -221,7 +230,7 @@ sub load_canvas {
     $canvas->Composite(image=>$tmp,compose=>"over",gravity=>"Center");
 	$self->canvas($canvas);
 
-	return $self->canvas;
+	return $canvas;
 }
 
 sub mktmp {

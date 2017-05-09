@@ -20,8 +20,8 @@ has theta=>(is=>"rw",isa=>"Int",default=>sub { 50; });
 has threshold=>(is=>"rw",isa=>"Int",default=>sub { 10; });
 
 
-has parent=>(is=>'ro',isa=>'GoatKCD');
-has canvas=>(is=>'rw',isa=>'Image::Magick');
+has parent=>(is=>'ro',isa=>'GoatKCD',weak_ref=>1);
+has canvas=>(is=>'rw',isa=>'Image::Magick',weak_ref=>1);
 
 
 sub extract {
@@ -29,7 +29,18 @@ sub extract {
 
 	$self->canvas($canvas);
 
-	my $lines = GoatKCD::Extractor::OpenCV::getlines($imgpath,$self->min_line_length,$self->rho,$self->theta,$self->threshold);
+	my $data = GoatKCD::Extractor::OpenCV::getlines($imgpath,$self->min_line_length,$self->rho,$self->theta,$self->threshold);
+
+	$self->parent->log("return from extractor",$data);
+
+	my $lines = $data->{lines};
+	my $checklines = {};
+	foreach my $check_y (sort {$a<=>$b} uniqnum map {$_->[0]} @{$data->{checklines}}) {
+		$checklines->{$check_y} = scalar(grep {$_->[0]==$check_y} @{$data->{checklines}});
+	}
+	$self->parent->log("LineHash",$checklines);
+	
+	
 
 	my $last=0;
 	my $ct = $self->canvas->Clone;
@@ -57,11 +68,14 @@ sub extract {
 
 	$last = 0;
 	ROWL: foreach my $line (sort {$a->[1]<=>$b->[1]} grep {$_->[1]==$_->[3]} @$lines) {
-		if (abs($line->[1]-$last)>=2) {
-			$ct->Draw(primitive=>"line",stroke=>"#00ff00",points=>"$line->[0],$line->[1] $line->[2],$line->[3]") if ($self->parent->debug);
-
-           	push(@h,$line);
-		}
+		#if ($checklines->{$line->[1]}>1) {	
+			if (abs($line->[1]-$last)>=2) {
+				$ct->Draw(primitive=>"line",stroke=>"#00ff00",points=>"$line->[0],$line->[1] $line->[2],$line->[3]") if ($self->parent->debug);
+	
+           		push(@h,$line);
+			}
+		#}
+			
 		$last = $line->[3];
 	}
 		
@@ -157,6 +171,7 @@ sub collapse_columns {
         }
         last if (!$changed);
     }
+	undef $self->{canvas};
     return @rows;
 }
 

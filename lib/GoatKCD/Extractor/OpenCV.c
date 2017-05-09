@@ -46,7 +46,7 @@ void showImage(IplImage* img,const char* title) {
 
 void draw_lines_standard(IplImage* img,IplImage* color_img,CvSeq* lines) {
     lines = cvHoughLines2( img, cvCreateMemStorage(0), CV_HOUGH_STANDARD, 1, CV_PI/180, 50, 50, 10 );
-    for(int i = 0; i < MIN(lines->total,100); i++ ) {
+    for(int i = 0; i < MIN(lines->total,200); i++ ) {
         float* line = (float*)cvGetSeqElem(lines,i);
         float rho = line[0];
         float theta = line[1];
@@ -84,21 +84,21 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
     IplImage* morph = cvCloneImage(src);
     IplImage* grad = cvCreateImage(size, 8, 1 );
     IplImage* bw = cvCreateImage(size, 8, 1 );
-    IplImage* final = cvCreateImage(size,8,1);
+	CvMemStorage* storage = cvCreateMemStorage(0);
 
     IplConvKernel* kernel = cvCreateStructuringElementEx(3,3,0,0,MORPH_ELLIPSE,NULL);
-
-    cvMorphologyEx(morph,grad,cvCreateMemStorage(0),kernel,MORPH_GRADIENT,1);
+    cvMorphologyEx(morph,grad,storage,kernel,MORPH_GRADIENT,1);
     cvThreshold(grad,bw,0.0,255.0, THRESH_BINARY | THRESH_OTSU);
-    kernel = cvCreateStructuringElementEx(9,1,0,0,MORPH_RECT,NULL);
-    cvMorphologyEx(bw,final,cvCreateMemStorage(0),kernel,MORPH_CLOSE,1);
+
+    //kernel = cvCreateStructuringElementEx(9,1,0,0,MORPH_RECT,NULL);
+    //cvMorphologyEx(bw,final,cvCreateMemStorage(0),kernel,MORPH_CLOSE,1);
 
 	/* Canny image filter for the cmic frames. */	
 	IplImage* gray = cvCreateImage(size, 8, 1 );
 	cvCanny( src, gray, 20, 200, 3 );
 
-    CvMemStorage *storage = cvCreateMemStorage(0);
     CvSeq *contours = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvPoint), storage);
+	cvClearMemStorage(storage);
     int count = cvFindContours(bw, storage, &contours, sizeof(CvContour), CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0));
 
     if (1) {
@@ -112,10 +112,10 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
     }
 
 
-    CvSeq* lines = cvHoughLines2( gray, cvCreateMemStorage(0), CV_HOUGH_PROBABILISTIC, 1, (CV_PI/180), rho, theta, threshold );
-
-	AV* plines = newAV();
-    lines = cvHoughLines2( gray, cvCreateMemStorage(0), CV_HOUGH_STANDARD, 1, CV_PI/180, 50, 50, 10 );
+	HV* data = newHV();
+	AV* slines = newAV();
+	cvClearMemStorage(storage);
+    CvSeq* lines = cvHoughLines2( gray, storage, CV_HOUGH_STANDARD, 1, CV_PI/180, 50, 50, 10 );
     for(int i = 0; i < MIN(lines->total,100); i++ ) {
         float* line = (float*)cvGetSeqElem(lines,i);
         float rho = line[0];
@@ -128,22 +128,56 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
         pt1.y = cvRound(y0 + 1000*(a));
         pt2.x = cvRound(x0 - 1000*(-b));
         pt2.y = cvRound(y0 - 1000*(a));
-        if (abs(pt2.x-pt1.x)<=2 || abs(pt1.y-pt2.y)<=2) {
+		//if (pt1.y>pt2.y) { pt1.y = pt2.y; } else { pt2.y = pt1.y; }
+        if (abs(pt2.x-pt1.x)<=5 || abs(pt1.y-pt2.y)<=5) {
+
 			AV* ltt;
             ltt  = newAV();
 			av_push(ltt,newSViv(pt1.x));
             av_push(ltt,newSViv(pt1.y));
 			av_push(ltt,newSViv(pt2.x));
             av_push(ltt,newSViv(pt2.y));
-			av_push(plines,newRV((SV*)ltt));
+			av_push(slines,newRV((SV*)ltt));
+
         }
+		
 	}
 
-	return newRV((SV*)plines);
+	hv_store(data,"lines",5,newRV((SV*)slines),0);
+	cvClearMemStorage(lines->storage);
+	cvClearMemStorage(storage);
+
+	lines = cvHoughLines2( gray, storage, CV_HOUGH_PROBABILISTIC, 1, (CV_PI/180), 50, 50, 10 );
+
+	AV* plines = newAV();
+    for(int i = 0; i<lines->total; i++ ) {
+        CvPoint* line = (CvPoint*)cvGetSeqElem(lines,i);
+        if (abs(line[0].y-line[1].y)<=5) {
+			if (line[0].y>line[1].y) { line[0].y = line[1].y; } else { line[1].y = line[0].y; }
+			AV* ltt;
+			ltt  = newAV();
+            av_push(ltt,newSViv(line[0].y));
+			av_push(ltt,newSViv(abs(line[1].x-line[0].x)));
+			av_push(plines,newRV((SV*)ltt));
+        }
+    }
+	cvClearMemStorage(lines->storage);
+
+	cvReleaseImage(&src);
+	cvReleaseImage(&gray);
+	cvReleaseImage(&morph);
+	cvReleaseImage(&bw);
+	cvReleaseMemStorage(&storage);
+	cvReleaseStructuringElement(&kernel);
+	cvReleaseMemStorage(&contours);
+
+
+	hv_store(data,"checklines",10,newRV((SV*)plines),0);
+	return newRV((SV*)data);
 }
 
 
-#line 147 "lib/GoatKCD/Extractor/OpenCV.c"
+#line 181 "lib/GoatKCD/Extractor/OpenCV.c"
 #ifndef PERL_UNUSED_VAR
 #  define PERL_UNUSED_VAR(var) if (0) var = var
 #endif
@@ -287,7 +321,7 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 #  define newXS_deffile(a,b) Perl_newXS_deffile(aTHX_ a,b)
 #endif
 
-#line 291 "lib/GoatKCD/Extractor/OpenCV.c"
+#line 325 "lib/GoatKCD/Extractor/OpenCV.c"
 
 XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_getlines); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_getlines)
@@ -307,9 +341,9 @@ XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_getlines)
 	int	threshold = (int)SvIV(ST(4))
 ;
 	SV *	RETVAL;
-#line 148 "lib/GoatKCD/Extractor/OpenCV.xs"
+#line 182 "lib/GoatKCD/Extractor/OpenCV.xs"
 		RETVAL = process_lines(input,minLength,rho,theta,threshold);
-#line 313 "lib/GoatKCD/Extractor/OpenCV.c"
+#line 347 "lib/GoatKCD/Extractor/OpenCV.c"
 	RETVAL = sv_2mortal(RETVAL);
 	ST(0) = RETVAL;
     }
@@ -328,9 +362,9 @@ XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_echo)
 ;
 	int	RETVAL;
 	dXSTARG;
-#line 157 "lib/GoatKCD/Extractor/OpenCV.xs"
+#line 191 "lib/GoatKCD/Extractor/OpenCV.xs"
     RETVAL = (input % 2 == 0);
-#line 334 "lib/GoatKCD/Extractor/OpenCV.c"
+#line 368 "lib/GoatKCD/Extractor/OpenCV.c"
 	XSprePUSH; PUSHi((IV)RETVAL);
     }
     XSRETURN(1);

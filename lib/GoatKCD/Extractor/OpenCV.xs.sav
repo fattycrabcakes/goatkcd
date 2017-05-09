@@ -75,10 +75,10 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
     IplImage* morph = cvCloneImage(src);
     IplImage* grad = cvCreateImage(size, 8, 1 );
     IplImage* bw = cvCreateImage(size, 8, 1 );
-	CvMemStorage* storage = cvCreateMemStorage(0);
+    //IplImage* final = cvCreateImage(size,8,1);
 
     IplConvKernel* kernel = cvCreateStructuringElementEx(3,3,0,0,MORPH_ELLIPSE,NULL);
-    cvMorphologyEx(morph,grad,storage,kernel,MORPH_GRADIENT,1);
+    cvMorphologyEx(morph,grad,cvCreateMemStorage(0),kernel,MORPH_GRADIENT,1);
     cvThreshold(grad,bw,0.0,255.0, THRESH_BINARY | THRESH_OTSU);
 
     //kernel = cvCreateStructuringElementEx(9,1,0,0,MORPH_RECT,NULL);
@@ -88,8 +88,8 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
 	IplImage* gray = cvCreateImage(size, 8, 1 );
 	cvCanny( src, gray, 20, 200, 3 );
 
+    CvMemStorage *storage = cvCreateMemStorage(0);
     CvSeq *contours = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvPoint), storage);
-	cvClearMemStorage(storage);
     int count = cvFindContours(bw, storage, &contours, sizeof(CvContour), CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0));
 
     if (1) {
@@ -105,8 +105,7 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
 
 	HV* data = newHV();
 	AV* slines = newAV();
-	cvClearMemStorage(storage);
-    CvSeq* lines = cvHoughLines2( gray, storage, CV_HOUGH_STANDARD, 1, CV_PI/180, 50, 50, 10 );
+    CvSeq* lines = cvHoughLines2( gray, cvCreateMemStorage(0), CV_HOUGH_STANDARD, 1, CV_PI/180, 50, 50, 10 );
     for(int i = 0; i < MIN(lines->total,100); i++ ) {
         float* line = (float*)cvGetSeqElem(lines,i);
         float rho = line[0];
@@ -135,10 +134,7 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
 	}
 
 	hv_store(data,"lines",5,newRV((SV*)slines),0);
-	cvClearMemStorage(lines->storage);
-	cvClearMemStorage(storage);
-
-	lines = cvHoughLines2( gray, storage, CV_HOUGH_PROBABILISTIC, 1, (CV_PI/180), 50, 50, 10 );
+	lines = cvHoughLines2( gray, cvCreateMemStorage(0), CV_HOUGH_PROBABILISTIC, 1, (CV_PI/180), 50, 50, 10 );
 
 	AV* plines = newAV();
     for(int i = 0; i<lines->total; i++ ) {
@@ -152,16 +148,6 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
 			av_push(plines,newRV((SV*)ltt));
         }
     }
-	cvClearMemStorage(lines->storage);
-
-	cvReleaseImage(&src);
-	cvReleaseImage(&gray);
-	cvReleaseImage(&morph);
-	cvReleaseImage(&bw);
-	cvReleaseMemStorage(&storage);
-	cvReleaseStructuringElement(&kernel);
-	cvReleaseMemStorage(&contours);
-
 
 	hv_store(data,"checklines",10,newRV((SV*)plines),0);
 	return newRV((SV*)data);
