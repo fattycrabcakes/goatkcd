@@ -5,11 +5,16 @@ use Data::Dumper;
 use Term::ReadLine;
 use Web::Scraper;
 use URI;
+use Try::Tiny;
+use Math::Geometry::Planar qw(SegmentIntersection);
 use feature qw(say);
 
 my $line;
-my $gkcd = GoatKCD->new();
+my $gkcd = GoatKCD->new(debug=>1);
 my $term = Term::ReadLine->new();
+
+say STDERR Dumper(SegmentIntersection([[75,0],[65,51],[0,50],[100,50]]));
+
 
 
 if (-f $ARGV[0]) {
@@ -17,18 +22,38 @@ if (-f $ARGV[0]) {
 	exit;
 }
 
+my $comic = 180;
+
 while ($line ne "quit") {
 	$line = $term->readline("Comic Number: ");
 	my ($command,@args) = split(/ /,$line);
+	
 	if (main->can($command)) {
-		main->$command(@args);
+		#try {
+			main->$command(@args);
+		#} catch {
+			#say STDERR "Something went fucky....";
+			#say STDERR $@;
+		#};
 	} else {
-		usage();
+		if ($command eq "") {
+			$comic++;
+			show("originals/$comic.png");
+		} else {
+			usage();
+		}
 	}
 }
 
 sub quit {
 	exit;
+}
+
+sub set_comic {
+	my ($class,$number) = @_;
+
+	$comic = $number;
+	show("./originals/$number.png");
 }
 
 sub show {
@@ -86,10 +111,30 @@ sub comic {
 	summon($res->{img})->Display();
 }
 
+sub threshold {
+	my ($class,$id) = @_;
+
+	$gkcd->processor->threshold($id);
+}
+
+sub rho {
+    my ($class,$id) = @_;
+
+    $gkcd->processor->rho($id);
+}
+
+sub theta {
+    my ($class,$id) = @_;
+
+    $gkcd->processor->theta($id);
+}
+
+
 sub summon {
 	my $what = shift;
 	return $gkcd->summon_the_goatman($what);
 }
+
 sub usage() {
 	say "LOL";
 }	

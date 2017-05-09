@@ -6,6 +6,7 @@ use feature qw(say);
 use Moose;
 use GoatKCD::Extractor::OpenCV;
 use Math::Trig;
+use Math::Geometry::Planar;
 use List::Util qw(min max uniqnum);
 use Cv;
 
@@ -13,6 +14,7 @@ has min_line_length => (is=>'rw',isa=>'Int',default=>sub { 20; });
 has max_line_gap => (is=>'rw',isa=>'Int',default=>sub { 25; });
 has min_rect_thickness =>(is=>'rw',isa=>'Int',default=>sub { 35; });
 has collapse_proximity=>(is=>'rw',isa=>'Int',default=>sub { 7; });
+
 has rho=>(is=>"rw",isa=>"Int",default=>sub { 50; });
 has theta=>(is=>"rw",isa=>"Int",default=>sub { 50; });
 has threshold=>(is=>"rw",isa=>"Int",default=>sub { 10; });
@@ -23,46 +25,46 @@ has canvas=>(is=>'rw',isa=>'Image::Magick');
 
 
 sub extract {
-	my ($self,$imgpath,$canvas) = @_;
+	my ($self,$imgpath,$canvas,$firstpass) = @_;
 
 	$self->canvas($canvas);
 
 	my $lines = GoatKCD::Extractor::OpenCV::getlines($imgpath,$self->min_line_length,$self->rho,$self->theta,$self->threshold);
 
-	my $minX = min map {$_->[0]} @$lines;
-	my $maxX = max map {$_->[2]} @$lines;
-	my $minY = min map {$_->[1]} @$lines;
-    my $maxY = max map {$_->[3]} @$lines;
-
 	my $last=0;
-	my @v;
-	foreach my $line (sort {$a->[0]<=>$b->[0]} grep {$_->[0]==$_->[2]} @$lines) {
-		if ($line->[3]>$line->[1]) {
-            $line = [$line->[0],$line->[3],$line->[0],$line->[1]];
-        }
+	my $ct = $self->canvas->Clone;
 
-		if ($line->[0]-$last>=3) {
-			$line->[1] = $minY;
-			$line->[3] = $maxY;
+	my @h;
+	my @v;
+
+	foreach my $line (@$lines) {
+		if ($line->[1]>$line->[3]) {
+        	$line = [$line->[0],$line->[3],$line->[2],$line->[1]];
+        }
+		if ($line->[0]>$line->[2]) {
+            $line = [$line->[2],$line->[1],$line->[0],$line->[3]];
+        }
+	}
+
+
+	foreach my $line (sort {$a->[0]<=>$b->[0]} grep {$_->[0]==$_->[2]} @$lines) {
+		if ($line->[0]-$last>=2) {
 			push(@v,$line);
+		 	$ct->Draw(primitive=>"line",stroke=>"#ff0000",points=>"$line->[0],$line->[1] $line->[2],$line->[3]") if ($self->parent->debug);
 		}
 		$last = $line->[0];
 	}
 
 	$last = 0;
-	my @h;
-	foreach my $line (sort {$a->[1]<=>$b->[1]} grep {$_->[1]==$_->[3]} @$lines) {
-		 if ($line->[2]>$line->[0]) { 
-            $line = [$line->[2],$line->[1],$line->[0],$line->[3]];
-        }
-        if ($line->[1]-$last>=3) {
-            $line->[0] = $minX;
-            $line->[2] = $maxX;
-            push(@h,$line);
-        }
+	ROWL: foreach my $line (sort {$a->[1]<=>$b->[1]} grep {$_->[1]==$_->[3]} @$lines) {
+		if (abs($line->[1]-$last)>=2) {
+			$ct->Draw(primitive=>"line",stroke=>"#00ff00",points=>"$line->[0],$line->[1] $line->[2],$line->[3]") if ($self->parent->debug);
 
-        $last = $line->[1];
-    }
+           	push(@h,$line);
+		}
+		$last = $line->[3];
+	}
+		
 
 
 	my @rects;
@@ -85,10 +87,27 @@ sub extract {
 		push(@rows,[grep {$_->[1]==$y} @rects]);
 	}
 
+	
+
+	$self->parent->log("rows",[@rows]);
+
 	@rows = $self->collapse_columns(@rows);
-	@rows = $self->collapse_rows(@rows);
+	@rows = $self->collapse_rows(sort {$a->[0]->[1]<=>$b->[0]->[1]} @rows);
+
+	my $lastrow = $rows[$#rows];
+    my $lc = $lastrow->[scalar(@$lastrow)-1];
+    $ct->Draw(primitive=>"rectangle",stroke=>"#ffff00",points=>"$lc->[0],$lc->[1] $lc->[2],$lc->[3]") if ($self->parent->debug);
+    $ct->Display() if ($self->parent->debug);
+
 
 	return [@rows];
+}
+
+sub between {
+	my ($start,$end,$val) = @_;
+
+	return ($val>$start && $val<$end);
+
 }
 
 sub collapse_columns {
@@ -103,7 +122,7 @@ sub collapse_columns {
                 next if (!defined $column);
                 my $next_column = $row->[$i+1];
                 if ($next_column) {
-					if ($column->[2]==$next_column->[0]) {
+					if (abs($column->[2]-$next_column->[0])<=$self->collapse_proximity) {
 						my $xv = $next_column->[0]+int(($next_column->[2]-$next_column->[0])/2);
                     	my $yv = $column->[3];
 
@@ -115,14 +134,21 @@ sub collapse_columns {
                         );
 
 						my $avg = List::Util::sum(@pa)/scalar(@pa);
-						if ($avg!=$pa[0]) {
-                        	$changed = 1;
-                        	$column->[2] = $next_column->[2];
-                        	$row->[$i+1] = undef;
-						} else {
-							$next_column->[0]+=5;
-							$next_column->[2]-=5;
+						$changed = 1;
+                        $column->[2] = $next_column->[2];
+                        $row->[$i+1] = undef;
+
+						if (0) {
+							if ($avg!=$pa[0]) {
+                        		$changed = 1;
+                        		$column->[2] = $next_column->[2];
+                        		$row->[$i+1] = undef;
+							} else {
+								$next_column->[0]+=5;
+								$next_column->[2]-=5;
+							}
 						}
+						
                     }
                 }
                 push(@row_tmp,$column);
@@ -150,6 +176,7 @@ sub collapse_rows {
             }
             if (scalar(@$row)==scalar(@$next_row)) { # same number of columns.
                 for (my $j=0;$j<scalar(@$row);$j++) {
+					$self->parent->log("what",abs($row->[$j]->[3]-$next_row->[$j]->[1]));
                     if (abs($row->[$j]->[3]-$next_row->[$j]->[1])<$self->collapse_proximity) {
                         $row->[$j]->[3] = $next_row->[$j]->[3];
                         $rows[$i+1]=undef;
@@ -163,8 +190,7 @@ sub collapse_rows {
         last if (!$changed);
     }
 
-    return @rows;
-
+    return sort {$a->[0]->[1]<=>$b->[0]->[1]} @rows;
 }
 
 

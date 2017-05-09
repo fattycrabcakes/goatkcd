@@ -44,7 +44,7 @@ sub summon_the_goatman {
 	my $rows;
 	my $y_offset = 0;
 
-	$rows = $self->extract_rows($canvas);
+	$rows = $self->extract_rows($canvas,1);
 	return if (!defined $rows);
 
 	$self->log("Rows from extractor:",$rows);
@@ -116,7 +116,7 @@ sub goatify {
 	}
 
 	# unpad canvas
-	$canvas->Crop(width=>$canvas->Get("width")-20,height=>$canvas->Get("height")-20,x=>10,y=>10);
+	#$canvas->Crop(width=>$canvas->Get("width")-20,height=>$canvas->Get("height")-20,x=>10,y=>10);
 	return $canvas;
 }
 
@@ -164,6 +164,8 @@ sub load_img {
 	my ($self,$data) = @_;
 	my $img = Image::Magick->new();
 
+	say STDERR "LOADING $data\n";
+	
 	if (!defined $data) {
 		return $self->error_img();
 	} elsif (ref($data) eq "CODE") {
@@ -177,10 +179,15 @@ sub load_img {
 			}
 			my $ua = LWP::UserAgent->new();
 			my $res = $ua->get($data);
-			$img->BlobToImage($res->content);
+			if (!$res->is_success) {
+				say STDERR $res->status_line;
+				return $self->error_img();
+			} else {
+				$img->BlobToImage($res->content);
+			}
 
 		} catch {
-			$self->log("error",$@);
+			say STDERR Dumper([@_]);
 			return $self->error_img();
 		}
 	} else {
@@ -200,6 +207,13 @@ sub load_canvas {
 
 	my $tmp = $self->load_img($img);
 	my ($w,$h) = $tmp->Get("width","height");
+
+	if ($w>1000) {
+		my $rsb = 1000/$w;
+		$w*=$rsb;
+		$h*=$rsb;
+		$tmp->Resize(geometry=>"$w"."x".$h);
+	}
 
 	my $canvas = Image::Magick->new();
     $canvas->Set(size=>($w+$self->pad_by)."x".($h+$self->pad_by));
@@ -234,11 +248,11 @@ sub reset {
 }
 
 sub extract_rows {
-	my ($self,$img) = @_;
+	my ($self,$img,$firstpass) = @_;
 
 	my $rows=[];
 	my $tmpf = $self->mktmp($img);
-	$rows = $self->processor->extract($tmpf,$img);
+	$rows = $self->processor->extract($tmpf,$img,$firstpass);
 	return wantarray?@$rows:$rows;
 }
 
