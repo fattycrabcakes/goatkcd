@@ -123,10 +123,14 @@ sub goatify {
 
 
 	my @panels = $self->panels;
-	my $canvas = $self->canvas->Clone();
+	my $canvas = $self->canvas->Clone();	
+	my $unpad=1;
 
 	if (!defined $panels[0]) {
-		$panels[0] = [0,0,$self->canvas->Get("width","height")];
+		$self->log("what what","");
+		$unpad=0;
+		$panels[0] = [8,8,$self->canvas->Get("width")-8,$canvas->Get("height")-8];
+
 	}
 
 	foreach my $rect (@panels) {
@@ -138,7 +142,7 @@ sub goatify {
 	}
 
 	# unpad canvas
-	$canvas->Crop(width=>$canvas->Get("width")-20,height=>$canvas->Get("height")-20,x=>10,y=>10);
+	$canvas->Crop(width=>$canvas->Get("width")-20,height=>$canvas->Get("height")-20,x=>10,y=>10) if ($unpad);
 	return $canvas;
 }
 
@@ -192,7 +196,7 @@ sub load_img {
 		$img->ReadImage($data->($self));
 	} elsif (-f $data) {
 		$img->ReadImage($data);
-	} elsif ($data=~/^(?:http|\/\/)/i) {
+	} elsif ($data=~/^(?:http|https|\/\/)/i) {
 		try {
 			if ($data=~/^\/\//) {
 				$data="http:";

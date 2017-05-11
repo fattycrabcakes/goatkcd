@@ -181,7 +181,14 @@ sub collapse_rows {
         my $next_row = $rows[$i+1];
         next if (!$row);
         if (!$next_row) {
-        	push(@row_tmp,$row);
+			if ($i>0) {
+				# TODO: if this last row is a straggler, comsolidate with last row. Poops.
+				#if ($row->[0]->[3]-$row->[$i]->[1]<$self->collapse_proximity) {	
+					#$row->[$i-1]->[3] = $row->[$i]->[3];
+				}
+			#} else {
+        		push(@row_tmp,$row);
+			#}
             last;
         }
 
@@ -189,10 +196,12 @@ sub collapse_rows {
 
         if (scalar(@$row)==scalar(@$next_row)) {
         	for (my $j=0;$j<scalar(@$row);$j++) {
-            	if (abs($row->[$j]->[3]-$next_row->[$j]->[1])<=$self->collapse_proximity || $next_row) {
-                    $row->[$j]->[3] = $next_row->[$j]->[3];
-                    $rows[$i+1]=undef;
-                    $changed=1;
+            	if (abs($row->[$j]->[3]-$next_row->[$j]->[1])<=$self->collapse_proximity) {
+					if ($row->[$j]->[2]-$row->[$j]->[0] == $next_row->[$j]->[2]-$next_row->[$j]->[0]) {
+                    	$row->[$j]->[3] = $next_row->[$j]->[3];
+                    	$rows[$i+1]=undef;
+                    	$changed=1;
+					}
                 }
             }
         }
