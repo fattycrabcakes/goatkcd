@@ -88,7 +88,7 @@ sub comic {
 	my ($class,$id) = @_;
 
 	my $res = scraper {
-		process 'div#comic > img',img=>'@src';
+		process 'div#comic img',img=>'@src';
 	}->scrape(URI->new("https://xkcd.com/$id"));
 
 	summon($res->{img})->Display();

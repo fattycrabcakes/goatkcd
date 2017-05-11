@@ -24,7 +24,7 @@ $Data::Dumper::Indent = 0;
 $Data::Dumper::Terse=1;
 
 has 'beastmode'=>(is=>'rw',isa=>'Bool',default=>sub { 0; });
-has 'tmpfile'=>(is=>'rw',isa=>'Str',default=>sub { sprintf("%d-%d.png",$$,time()); });
+has 'tmpfile'=>(is=>'rw',isa=>'Str',default=>sub { sprintf("%d-%d.jpg",$$,time()); });
 has 'debug'=>(is=>'rw',isa=>'Int',default=>sub { 0; });
 has 'canvas'=>(is=>'rw',isa=>'Image::Magick');
 has 'rows'=>(is=>'rw',isa=>'Any',default=>sub { []; });
@@ -104,9 +104,7 @@ sub summon_the_goatman {
 			}
 		}
 	}
-	#$self->cleartmp();
-
-	# consolidate touching columns
+	$self->cleartmp();
 	$self->log("Rows after row processing",$rows);
 
 	$self->rows($rows);
