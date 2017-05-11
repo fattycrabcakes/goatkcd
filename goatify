@@ -13,9 +13,6 @@ my $line;
 my $gkcd = GoatKCD->new(debug=>0);
 my $term = Term::ReadLine->new();
 
-say STDERR Dumper(SegmentIntersection([[75,0],[65,51],[0,50],[100,50]]));
-
-
 
 if (-f $ARGV[0]) {
 	$gkcd->summon_the_goatman($ARGV[0])->Display();
@@ -25,7 +22,7 @@ if (-f $ARGV[0]) {
 my $comic = 180;
 
 while ($line ne "quit") {
-	$line = $term->readline("Comic Number: ");
+	$line = $term->readline("💩: ");
 	my ($command,@args) = split(/ /,$line);
 	
 	if (main->can($command)) {
@@ -35,25 +32,11 @@ while ($line ne "quit") {
 			#say STDERR "Something went fucky....";
 			#say STDERR $@;
 		#};
-	} else {
-		if ($command eq "") {
-			$comic++;
-			show("originals/$comic.png");
-		} else {
-			usage();
-		}
 	}
 }
 
 sub quit {
 	exit;
-}
-
-sub set_comic {
-	my ($class,$number) = @_;
-
-	$comic = $number;
-	show("./originals/$number.png");
 }
 
 sub show {

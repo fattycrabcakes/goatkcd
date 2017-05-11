@@ -25,10 +25,11 @@
 #define MORPH_CLOSE 3
 #define THRESH_BINARY 0
 #define THRESH_OTSU 8
-#define SHRINK_BY  5
+#define SHRINK_BY  10
 #define COMPLEXITY 1
 
 
+/*
 void draw_lines_prob(IplImage* img,IplImage* color_img, CvSeq* lines) {
     lines = cvHoughLines2( img, cvCreateMemStorage(0), CV_HOUGH_PROBABILISTIC, 1, (CV_PI/180), 50, 50, 10 );
     for(int i = 0; i<lines->total; i++ ) {
@@ -46,7 +47,7 @@ void showImage(IplImage* img,const char* title) {
 
 void draw_lines_standard(IplImage* img,IplImage* color_img,CvSeq* lines) {
     lines = cvHoughLines2( img, cvCreateMemStorage(0), CV_HOUGH_STANDARD, 1, CV_PI/180, 50, 50, 10 );
-    for(int i = 0; i < MIN(lines->total,200); i++ ) {
+    for(int i = 0; i < MIN(lines->total,300); i++ ) {
         float* line = (float*)cvGetSeqElem(lines,i);
         float rho = line[0];
         float theta = line[1];
@@ -58,13 +59,12 @@ void draw_lines_standard(IplImage* img,IplImage* color_img,CvSeq* lines) {
         pt1.y = cvRound(y0 + 1000*(a));
         pt2.x = cvRound(x0 - 1000*(-b));
         pt2.y = cvRound(y0 - 1000*(a));
-        if (abs(pt2.x-pt1.x)<=2 || abs(pt1.y-pt2.y)<=2) {
+        if (abs(pt2.x-pt1.x)<=5 || abs(pt1.y-pt2.y)<=5) {
             cvLine( color_img, pt1, pt2, CV_RGB(0,0xff,0x00), 1, CV_AA, 0 );
         }
     }
 }
-
-
+*/
 
 SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) {
 
@@ -75,7 +75,7 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
         return retval;
     }
 
-	 CvSize size = cvGetSize(src);
+	CvSize size = cvGetSize(src);
 
     int i;
 
@@ -90,10 +90,6 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
     cvMorphologyEx(morph,grad,storage,kernel,MORPH_GRADIENT,1);
     cvThreshold(grad,bw,0.0,255.0, THRESH_BINARY | THRESH_OTSU);
 
-    //kernel = cvCreateStructuringElementEx(9,1,0,0,MORPH_RECT,NULL);
-    //cvMorphologyEx(bw,final,cvCreateMemStorage(0),kernel,MORPH_CLOSE,1);
-
-	/* Canny image filter for the cmic frames. */	
 	IplImage* gray = cvCreateImage(size, 8, 1 );
 	cvCanny( src, gray, 20, 200, 3 );
 
@@ -103,13 +99,14 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
 
     if (1) {
         for(; contours!=0; contours = contours->h_next) {
-            if (contours->total>COMPLEXITY) {
-                CvRect rect = cvBoundingRect(contours,0);
+        	CvRect rect = cvBoundingRect(contours,0);
 				/* delete detected shapes from outlines to reduce noise. */
-                cvRectangle(gray,cvPoint(rect.x+SHRINK_BY,rect.y+SHRINK_BY),cvPoint(rect.x+rect.width-SHRINK_BY,rect.y+rect.height-SHRINK_BY),CV_RGB(0,0,0),-1,8,0);
-            }
+            cvRectangle(gray,cvPoint(rect.x+SHRINK_BY,rect.y+SHRINK_BY),cvPoint(rect.x+rect.width-SHRINK_BY,rect.y+rect.height-SHRINK_BY),CV_RGB(0,0,0),-1,8,0);
+			cvRectangle(gray,cvPoint(rect.x+SHRINK_BY,rect.y+SHRINK_BY),cvPoint(rect.x+rect.width-SHRINK_BY,rect.y+rect.height-SHRINK_BY),CV_RGB(0,0,0),2,8,0);
         }
     }
+
+
 
 
 	HV* data = newHV();
@@ -177,7 +174,7 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
 }
 
 
-#line 181 "lib/GoatKCD/Extractor/OpenCV.c"
+#line 178 "lib/GoatKCD/Extractor/OpenCV.c"
 #ifndef PERL_UNUSED_VAR
 #  define PERL_UNUSED_VAR(var) if (0) var = var
 #endif
@@ -321,7 +318,7 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 #  define newXS_deffile(a,b) Perl_newXS_deffile(aTHX_ a,b)
 #endif
 
-#line 325 "lib/GoatKCD/Extractor/OpenCV.c"
+#line 322 "lib/GoatKCD/Extractor/OpenCV.c"
 
 XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_getlines); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_getlines)
@@ -341,9 +338,9 @@ XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_getlines)
 	int	threshold = (int)SvIV(ST(4))
 ;
 	SV *	RETVAL;
-#line 182 "lib/GoatKCD/Extractor/OpenCV.xs"
+#line 179 "lib/GoatKCD/Extractor/OpenCV.xs"
 		RETVAL = process_lines(input,minLength,rho,theta,threshold);
-#line 347 "lib/GoatKCD/Extractor/OpenCV.c"
+#line 344 "lib/GoatKCD/Extractor/OpenCV.c"
 	RETVAL = sv_2mortal(RETVAL);
 	ST(0) = RETVAL;
     }
@@ -362,9 +359,9 @@ XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_echo)
 ;
 	int	RETVAL;
 	dXSTARG;
-#line 191 "lib/GoatKCD/Extractor/OpenCV.xs"
+#line 188 "lib/GoatKCD/Extractor/OpenCV.xs"
     RETVAL = (input % 2 == 0);
-#line 368 "lib/GoatKCD/Extractor/OpenCV.c"
+#line 365 "lib/GoatKCD/Extractor/OpenCV.c"
 	XSprePUSH; PUSHi((IV)RETVAL);
     }
     XSRETURN(1);

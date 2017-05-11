@@ -74,14 +74,32 @@ sub summon_the_goatman {
 				my $canvas_tmp = $canvas->Clone();
 				$canvas_tmp->Crop(width=>$canvas->Get("width"),height=>$row_height+$bottom_padding,x=>0,y=>$y_offset);
 				$bottom_edge = $y_offset;
+				my $x_offset = 0;
 
 				my ($just_this_row) = $self->extract_rows($canvas_tmp);
+
+				if (defined $just_this_row && scalar(@$just_this_row)>1) {
+					my $jlp = $just_this_row->[scalar(@$just_this_row)-1];
+
+					$canvas_tmp->Crop(width=>$jlp->[2]-$jlp->[0],height=>$jlp->[3]-$jlp->[1],x=>$jlp->[0],y=>$jlp->[1]);
+					my $last_column = $self->extract_rows($canvas_tmp);
+					$self->log("hey now",$last_column);
+					$jlp = $last_column->[0];
+				}
+
 				if ($just_this_row) {
 					foreach my $column (@$just_this_row) {
 						$column->[1]+=$y_offset;
 						$column->[3]+=$y_offset;
 					}
 					$rows->[$i] = $just_this_row;
+				}	
+				
+				# final sanity check on last column
+
+
+				unless ($self->beastmode) {
+					last ROWLOOP;
 				}
 			}
 		}
