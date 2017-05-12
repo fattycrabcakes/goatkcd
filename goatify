@@ -3,12 +3,16 @@
 use Moose;
 use lib qw(./lib);
 use GoatKCD::CLI;
+use Getopt::Long;
+use Data::Dumper;
 use feature qw(say);
 
 my $cli = GoatKCD::CLI->new();
+
 if (scalar(@ARGV)) {
-	$cli->debug;
-	$cli->command(@ARGV);
+
+	$cli->commandline(@ARGV);
+
 } else {
 	$cli->main();
 }

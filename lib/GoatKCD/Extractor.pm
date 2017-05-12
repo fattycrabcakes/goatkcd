@@ -5,6 +5,7 @@ use Data::Dumper;
 use feature qw(say);
 use Moose;
 with 'Timer';
+with 'Toggler';
 
 use GoatKCD::Extractor::OpenCV;
 use List::Util qw(min max uniqnum);
@@ -20,6 +21,7 @@ has x=>(is=>'rw',isa=>'Int');
 has y=>(is=>'rw',isa=>'Int');
 has width=>(is=>'rw',isa=>'Int');
 has height=>(is=>'rw',isa=>'Int');
+has consolidate_rows=>(is=>'rw',isa=>'Int',default=>sub { 0; });
 
 
 sub load {
@@ -128,7 +130,9 @@ sub extract {
 	$self->parent->log("rows",[@rows]);
 
 	@rows = $self->collapse_columns(@rows);
-	#@rows = $self->collapse_rows(sort {$a->[0]->[1]<=>$b->[0]->[1]} @rows);
+	if ($self->consolidate_rows) {
+		@rows = $self->collapse_rows(sort {$a->[0]->[1]<=>$b->[0]->[1]} @rows);
+	}
 	
  	my $lastrow = $rows[$#rows];
     my $lc = $lastrow->[scalar(@$lastrow)-1];

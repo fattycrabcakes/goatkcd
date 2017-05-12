@@ -38,6 +38,7 @@ has tmpdir=>(is=>'rw',isa=>'Str',default=>sub { "/tmp/"; });
 has processor=>(is=>'rw',isa=>'GoatKCD::Extractor',default=>sub {GoatKCD::Extractor->new(parent=>shift);});
 has auto_goatify=>(is=>'rw',isa=>'Str',default=>sub { 1; });
 has maxheight=>(is=>'rw',isa=>'Int',default=>sub { 640; });
+has border=>(is=>'rw',isa=>'Int',default=>sub { 1; });
 
 sub summon_the_goatman {
 	my ($self,$path) = @_;
@@ -139,7 +140,9 @@ sub goatify {
 		my $stinger_tmp = $self->stinger->Clone();
 		$stinger_tmp->Resize(geometry=>($rect->[2]-$rect->[0])."x".($rect->[3]-$rect->[1]."!"));
 		$self->canvas->Composite(image=>$stinger_tmp,x=>$rect->[0],y=>$rect->[1],compose=>"Over",gravity=>"NorthWest");
-		$self->canvas->Draw(primitive=>"rectangle",stroke=>"#000000",fill=>"#00000000",,strokewidth=>'2',points=>join(",",@$rect));
+		if ($self->border>0) {
+			$self->canvas->Draw(primitive=>"rectangle",stroke=>"#000000",fill=>"#00000000",,strokewidth=>$self->border,points=>join(",",@$rect));
+		}
 		undef $stinger_tmp;
 	}
 
