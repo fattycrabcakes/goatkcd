@@ -1,9 +1,5 @@
 use 5.008005;
 use ExtUtils::MakeMaker 7.12; # for XSMULTI option
-use File::ShareDir::Install;
-use Module::Build;
-
-install_share => 'share';
 
 
 WriteMakefile(
@@ -12,15 +8,22 @@ WriteMakefile(
   PREREQ_PM      => {
 	'ExtUtils::MakeMaker' => '7.12',
 	'LWP::UserAgent'=>0,
-    'Inline::Python'=>0,
     'Try::Tiny'=>0,
     'Image::Magick'=>0,
     'Web::Scraper'=>0,
+	'URI'=>0,
     'Data::Dumper'=>0,
     'Getopt::Long'=>0,
     'HTTP::Message'=>0,
-    'Inline::CPP'=>0,
     'List::Util'=> 1.47,
+	'Moose'=>0,
+	'Moose::Role'=>0,
+	'MooseX::MethodAttributes'=>0,
+	'Time::HiRes'=>0,
+	'FindBin'=>0,
+	'File::Copy'=>0,
+	'Test::More'=>0,
+	'Term::ReadLine'=>0,
   },
   ABSTRACT_FROM  => 'lib/GoatKCD/Extractor/OpenCV.pm',
   AUTHOR         => 'Fatty Crabcakes',
@@ -33,8 +36,3 @@ WriteMakefile(
   "EXE_FILES"	=>["goatify"],
   dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
 );
-
-package MY;
-sub postamble {
-	#print STDERR "#YAMS";
-}

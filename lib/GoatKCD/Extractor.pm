@@ -7,11 +7,7 @@ use Moose;
 with 'Timer';
 
 use GoatKCD::Extractor::OpenCV;
-use Math::Trig;
-use Math::Geometry::Planar;
 use List::Util qw(min max uniqnum);
-use Cv;
-use Time::HiRes;
 
 has min_line_length => (is=>'rw',isa=>'Int',default=>sub { 20; });
 has max_line_gap => (is=>'rw',isa=>'Int',default=>sub { 25; });

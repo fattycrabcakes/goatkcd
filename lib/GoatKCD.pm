@@ -13,8 +13,8 @@ use Web::Scraper;
 use Data::Dumper;
 use Try::Tiny;
 use List::Util;
-use Getopt::Long;
 use Moose;
+
 with 'Timer';
 use Time::HiRes;
 use Web::Scraper;
@@ -53,9 +53,6 @@ sub summon_the_goatman {
 	$self->rows($rows);
 	
 	if (scalar(@$rows)>1) {
-		
-		my $average_columns = (List::Util::sum map {scalar(@$_)} @$rows)/scalar(@$rows);
-	
 		my $bottom_edge = $canvas->Get("height");
 		if ($self->average_columns>1) {
 			my $rowcount = scalar(@$rows);
