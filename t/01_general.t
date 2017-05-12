@@ -4,12 +4,13 @@ use lib("./lib");
 use Test::More;
 use LWP::UserAgent;
 use GoatKCD;
+use FindBin;
 use feature qw(say);
 
 plan tests => 10;
 
 my $gkcd = GoatKCD->new(auto_goatify=>0);
-$gkcd->summon_the_goatman("assets/testcase_1.png");
+$gkcd->summon_the_goatman("$FindBin::Bin/../assets/testcase_1.png");
 
 ok($gkcd->rowcount==2,"Comic has two rows");
 ok($gkcd->columncount(1)==3,"Row 2 has 3 columns");
@@ -26,16 +27,17 @@ $panel = $gkcd->panel(2,3);
 ok(!defined $panel,"Nonexistent panel");
 
 my $details = $gkcd->panel_details(1,1);
-ok($details->{width}==260 && $details->{height}==271,"Panel has expected dimensions.");
+
+ok($details->{width}==258 && $details->{height}==269,"Panel has expected dimensions.");
 
 $gkcd->auto_goatify(1);
 $gkcd->beastmode(1);
 
-my $img = $gkcd->summon_the_goatman("assets/testcase_2.png");
+my $img = $gkcd->summon_the_goatman("$FindBin::Bin/../assets/testcase_2.png");
 
 ok($img->isa("Image::Magick"),"Output rendered");
 ok($gkcd->is_irregular,"Comic has varying number of columns per row");
-ok($gkcd->panelcount==5,"Beast Mode: ".$gkcd->panelcount." panels");
+ok($gkcd->panelcount==16,"Beast Mode: ".$gkcd->panelcount." panels");
 
 
 

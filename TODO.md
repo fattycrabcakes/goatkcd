@@ -1,3 +1,6 @@
 #TODO
 
-ur mom
+* ur mom
+* Line filtering 
+* whitespace detection in opencv
+* ur dad

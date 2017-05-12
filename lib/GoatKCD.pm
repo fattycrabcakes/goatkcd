@@ -13,9 +13,12 @@ use Web::Scraper;
 use Data::Dumper;
 use Try::Tiny;
 use List::Util;
+use Image::ExifTool;
+use JSON;
 use Moose;
 
 with 'Timer';
+with 'Toggler';
 use Time::HiRes;
 use Web::Scraper;
 use feature qw(say);
@@ -123,28 +126,46 @@ sub goatify {
 
 
 	my @panels = $self->panels;
-	my $canvas = $self->canvas->Clone();	
 	my $unpad=1;
 
 	if (!defined $panels[0]) {
 		$self->log("what what","");
 		$unpad=0;
-		$panels[0] = [8,8,$self->canvas->Get("width")-8,$canvas->Get("height")-8];
+		$panels[0] = [8,8,$self->canvas->Get("width")-8,$self->canvas->Get("height")-8];
 
 	}
 
 	foreach my $rect (@panels) {
 		my $stinger_tmp = $self->stinger->Clone();
 		$stinger_tmp->Resize(geometry=>($rect->[2]-$rect->[0])."x".($rect->[3]-$rect->[1]."!"));
-		$canvas->Composite(image=>$stinger_tmp,x=>$rect->[0],y=>$rect->[1],compose=>"Over",gravity=>"NorthWest");
-		$canvas->Draw(primitive=>"rectangle",stroke=>"#000000",fill=>"#00000000",,strokewidth=>'2',points=>join(",",@$rect));
+		$self->canvas->Composite(image=>$stinger_tmp,x=>$rect->[0],y=>$rect->[1],compose=>"Over",gravity=>"NorthWest");
+		$self->canvas->Draw(primitive=>"rectangle",stroke=>"#000000",fill=>"#00000000",,strokewidth=>'2',points=>join(",",@$rect));
 		undef $stinger_tmp;
 	}
 
 	# unpad canvas
-	$canvas->Crop(width=>$canvas->Get("width")-20,height=>$canvas->Get("height")-20,x=>10,y=>10) if ($unpad);
-	return $canvas;
+	$self->canvas->Crop(width=>$self->canvas->Get("width")-20,height=>$self->canvas->Get("height")-20,x=>10,y=>10) if ($unpad);
+	return $self->canvas;
 }
+
+sub save {
+	my ($self,$path) = @_;
+
+	$self->canvas->Write($path);
+	my $exif = Image::ExifTool->new();
+	$exif->ExtractInfo($path);
+
+	$exif->SetNewValue("Description"=>JSON::encode_json({rows=>[$self->rows]}));
+	#https://www.google.com/maps/place/Dildo+Island/@47.5663175,-53.5933158,17z/data=!4m13!1m7!3m6!1s0x4b7339fde3e5c105:0x52a18dbee73dd5e4!2sDildo+Island!3b1!8m2!3d47.5661422!4d-53.5911019!3m4!1s0x4b7339fde3e5c105:0x52a18dbee73dd5e4!8m2!3d47.5661422!4d-53.5911019
+	$exif->SetNewValue('GPSLatitudeRef'=>'N');
+	$exif->SetNewValue('GPSLongitudeRef'=>'W');
+	$exif->SetNewValue('GPSLatitude'=>47.5663175);
+    $exif->SetNewValue('GPSLongitude'=>53.5933158);
+	$exif->SetNewValue('ProcessingSoftware'=>'GoatKCD.pm v6.6.6');
+	$exif->WriteInfo($path);
+	
+}
+	
 
 sub panels {
 	my ($self,$force) = @_;
@@ -215,7 +236,7 @@ sub load_img {
 		} catch {
 			say STDERR Dumper([@_]);
 			return $self->error_img();
-		}
+		};
 	} else {
 		$img->BlobToImage($data);
 	}

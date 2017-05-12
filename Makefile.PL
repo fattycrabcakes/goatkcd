@@ -24,6 +24,7 @@ WriteMakefile(
 	'File::Copy'=>0,
 	'Test::More'=>0,
 	'Term::ReadLine'=>0,
+	'JSON::XS'=>0,
   },
   ABSTRACT_FROM  => 'lib/GoatKCD/Extractor/OpenCV.pm',
   AUTHOR         => 'Fatty Crabcakes',

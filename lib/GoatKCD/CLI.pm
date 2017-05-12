@@ -21,7 +21,7 @@ sub command {
 
 	my ($sub) = grep {$_->name eq $command && scalar(@{$_->attributes})} $self->meta->get_all_methods;
     if ($sub) {
-    	$sub->execute($self,@args);
+    	$self->$command(@args);
     } else {
     	$self->show_usage();
     }
@@ -30,9 +30,12 @@ sub command {
 sub main {
 	my $self = shift;
 
-	while (my $line = $self->term->readline("Command ")) {
-		my ($command,@args) = split(/ /,$line);
-		$self->command($command,@args);
+	while (1) {
+		my $line = $self->term->readline("Command ");
+		if (length($line)) {
+			my ($command,@args) = split(/ /,$line);
+			$self->command($command,@args);
+		}
 	}
 }
 
@@ -43,32 +46,43 @@ sub quit :Usage(quit) :Desc(Quit goatifying things and return to your usual rout
 sub show :Usage(show <file|url>) Desc(Display Goatified Image) {
 	my ($self,$file) = @_;
 
+	if (!$file) {
+		return $self->show_usage("show");
+	}
+
 	$self->summon($file)->Display();
 }
 
 sub save  :Usage(save <file|url> <output_file>) Desc(Save Goatified Image) {
 	my ($self,$file,$output) = @_;
 
-	my $img = $self->summon($file);	
-	$img->Write($output);
-	$img->Display();
+
+	if (!$file && !$output) {
+		return $self->show_usage("save");
+	}
+
+	$self->summon($file)->Display();	
+	$self->gkcd->save($output);
 }
 
 sub beastmode :Usage(beastmode) Desc(Toggle Beast mode) {
 	my $self = shift;
-	my $flag = shift;
 
-	$self->gkcd->beastmode($self->gkcd->beastmode^1);
+	say $self->gkcd->toggle("beastmode");
 }
 
 sub debug :Usage(debug) Desc(Toggle debug messages) {
 	my ($self) = @_;
 
-	$self->gkcd->debug($self->gkcd->debug^1);
+	say $self->gkcd->toggle("debug");
 }
 
 sub stinger :Usage(stinger <file>) Desc(Use another image instead of our dear Mr. Johnson)  {
 	my ($self,$img) = @_;
+
+	if (!$img) {
+		return $self->show_usage("stinger");
+	}
 
 	if (-f $img) {
 		$self->gkcd->set_stinger($img);
@@ -78,7 +92,9 @@ sub stinger :Usage(stinger <file>) Desc(Use another image instead of our dear Mr
 sub comic :Usage(Comic [<number>]) Desc(Scrape directly from xkcd. Leave blank for latest.) {
 	my ($self,$id) = @_;
 
-	$id||="";
+	if ($id && $id!~/^\d+$/) {
+		return $self->show_usage("comic");
+	}
 
 	my $res = scraper {
 		process 'div#comic img',img=>'@src';
@@ -95,10 +111,18 @@ sub summon {
 
 sub show_usage {
 	my $self = shift;
+	my $cmd = shift;
 
-	say "What? Here's whar you can do, schmendrick.";
+	say "What?";
 
-	foreach my $method (grep {$_->can("attributes") && scalar(@{$_->attributes})} $self->meta->get_all_methods) {
+	my @methods;
+	if ($cmd) {
+		@methods = grep {$_->name eq $cmd} $self->meta->get_all_methods;
+	} else {
+		@methods = grep {$_->can("attributes") && scalar(@{$_->attributes})} $self->meta->get_all_methods;
+	}
+
+	foreach my $method (@methods) {
 		if ($method->can("attributes")) {
 			my $attr= $method->attributes;
 			say "  ".substr($attr->[0],6,-1);

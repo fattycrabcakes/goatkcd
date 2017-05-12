@@ -12,12 +12,7 @@ use List::Util qw(min max uniqnum);
 has min_line_length => (is=>'rw',isa=>'Int',default=>sub { 20; });
 has max_line_gap => (is=>'rw',isa=>'Int',default=>sub { 25; });
 has min_rect_thickness =>(is=>'rw',isa=>'Int',default=>sub { 35; });
-has collapse_proximity=>(is=>'rw',isa=>'Int',default=>sub { 2; });
-
-has rho=>(is=>"rw",isa=>"Int",default=>sub { 50; });
-has theta=>(is=>"rw",isa=>"Int",default=>sub { 50; });
-has threshold=>(is=>"rw",isa=>"Int",default=>sub { 10; });
-
+has collapse_proximity=>(is=>'rw',isa=>'Int',default=>sub { 3; });
 
 has parent=>(is=>'ro',isa=>'GoatKCD',weak_ref=>1);
 has cvImage=>(is=>'rw');
@@ -88,11 +83,16 @@ sub extract {
 
 	$self->parent->log("lines",$lines);
 
-
+	my $open=0;
 	foreach my $line (sort {$a->[0]<=>$b->[0]} grep {abs($_->[0]-$_->[2])<=5} @$lines) {
-		if ($line->[0]-$last>=2 || $last==0) {
+		if (!$open) {
 			push(@v,$line);
+		} else {
+			if ($line->[0]-$last>=2) {
+                push(@v,$line);
+			}
 		}
+		$open^=1;
 		$last = $line->[0];
 	}
 
@@ -128,7 +128,7 @@ sub extract {
 	$self->parent->log("rows",[@rows]);
 
 	@rows = $self->collapse_columns(@rows);
-	@rows = $self->collapse_rows(sort {$a->[0]->[1]<=>$b->[0]->[1]} @rows);
+	#@rows = $self->collapse_rows(sort {$a->[0]->[1]<=>$b->[0]->[1]} @rows);
 	
  	my $lastrow = $rows[$#rows];
     my $lc = $lastrow->[scalar(@$lastrow)-1];
@@ -175,7 +175,7 @@ sub collapse_columns {
                    		$row->[$i+1] = undef;
 					} else {
 						#$next_column->[0]+=1;
-					#$next_column->[2]-=1;
+						#$next_column->[2]-=1;
 					}
 				}
 				
@@ -213,6 +213,7 @@ sub collapse_rows {
         if (scalar(@$row)==scalar(@$next_row)) {
         	for (my $j=0;$j<scalar(@$row);$j++) {
             	if (abs($row->[$j]->[3]-$next_row->[$j]->[1])<=$self->collapse_proximity) {
+					$self->parent->log("collapser","collapsing column at row $i x $j");
 					if ($row->[$j]->[2]-$row->[$j]->[0] == $next_row->[$j]->[2]-$next_row->[$j]->[0]) {
                     	$row->[$j]->[3] = $next_row->[$j]->[3];
                     	$rows[$i+1]=undef;
