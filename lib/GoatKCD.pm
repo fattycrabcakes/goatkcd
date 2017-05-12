@@ -7,6 +7,7 @@ use GoatKCD::Extractor;
 use GoatKCD::Extractor::OpenCV;
 use LWP::UserAgent;
 use HTTP::Message;
+use File::Type;
 use Image::Magick;
 use URI;
 use Web::Scraper;
@@ -20,7 +21,7 @@ use Moose;
 with 'Timer';
 with 'Toggler';
 use Time::HiRes;
-use Web::Scraper;
+
 use feature qw(say);
 
 our $VERSION = "1.0.0";
@@ -39,12 +40,14 @@ has processor=>(is=>'rw',isa=>'GoatKCD::Extractor',default=>sub {GoatKCD::Extrac
 has auto_goatify=>(is=>'rw',isa=>'Str',default=>sub { 1; });
 has maxheight=>(is=>'rw',isa=>'Int',default=>sub { 640; });
 has border=>(is=>'rw',isa=>'Int',default=>sub { 1; });
+has error=>(is=>'rw',isa=>'Int',default=>sub { 0; });
 
 sub summon_the_goatman {
 	my ($self,$path) = @_;
 
 	$self->reset();
 	my $canvas = $self->load_canvas($path);
+	return undef if (!$canvas);
 
 	my $rows;
 	my $y_offset = 0;
@@ -124,6 +127,10 @@ sub summon_the_goatman {
 
 sub goatify {
 	my $self = shift;
+
+	if ($self->error) {
+		return undef;
+	}
 
 
 	my @panels = $self->panels;
@@ -214,12 +221,11 @@ sub load_img {
 	my ($self,$data) = @_;
 	my $img = Image::Magick->new();
 
+
 	if (!defined $data) {
-		return $self->error_img();
-	} elsif (ref($data) eq "CODE") {
-		$img->ReadImage($data->($self));
-	} elsif (-f $data) {
-		$img->ReadImage($data);
+		$self->error(1);
+	} elsif (File::Type->new()->checktype_contents($data)=~/^image/i) {
+		$img->BlobToImage($data);
 	} elsif ($data=~/^(?:http|https|\/\/)/i) {
 		try {
 			if ($data=~/^\/\//) {
@@ -230,22 +236,27 @@ sub load_img {
     		my $res = $ua->get($data,'Accept-Encoding'=>HTTP::Message::decodable);
 
 			if (!$res->is_success) {
-				say STDERR $res->status_line;
-				return $self->error_img();
+				$self->error(1);
+				$self->log("error",$res->status_line);
 			} else {
-				$img->BlobToImage($res->decoded_content);
+				if (File::Type->new()->checktype_contents($res->decoded_content)=~/^image/i) {
+					$img->BlobToImage($res->decoded_content);
+				}
 			}
-
 		} catch {
-			say STDERR Dumper([@_]);
-			return $self->error_img();
+			$self->error(1);
+			$self->log("error",[@_]);
 		};
+	} elsif (ref($data) eq "CODE") {
+        $img->ReadImage($data->($self));
+    } elsif (-f $data) {
+        $img->ReadImage($data);
 	} else {
-		$img->BlobToImage($data);
+		$self->log("error","Unsupported or bad data");
 	}
-	if (!$img) {
-		$self->log("error",$@);
-		return $self->error_img();
+	if ($img && !scalar(@$img)) {
+		undef $img;
+		#$self->error(1);
 	}
 
 	return $img;
@@ -256,6 +267,7 @@ sub load_canvas {
 	my $img = shift;
 
 	my $tmp = $self->load_img($img);
+	return undef if (!$tmp);
 	my ($w,$h) = $tmp->Get("width","height");
 
 	if ($w>1000) {

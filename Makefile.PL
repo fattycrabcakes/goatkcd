@@ -25,6 +25,7 @@ WriteMakefile(
 	'Test::More'=>0,
 	'Term::ReadLine'=>0,
 	'JSON::XS'=>0,
+	'File::Type'=>0,
   },
   ABSTRACT_FROM  => 'lib/GoatKCD/Extractor/OpenCV.pm',
   AUTHOR         => 'Fatty Crabcakes',
@@ -34,6 +35,6 @@ WriteMakefile(
   LICENSE        => 'unlicensed',
   XSMULTI        => 1,
   TYPEMAPS		=>["lib/typemap"],
-  "EXE_FILES"	=>["goatify"],
+  "EXE_FILES"	=>["bin/goatify"],
   dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
 );

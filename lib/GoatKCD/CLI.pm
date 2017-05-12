@@ -32,7 +32,7 @@ sub main {
 	my $self = shift;
 
 	while (1) {
-		my $line = $self->term->readline("Command ");
+		my $line = $self->term->readline("Command> ");
 		if (length($line)) {
 			my ($command,@args) = split(/ /,$line);
 			$self->command($command,@args);
@@ -51,7 +51,12 @@ sub show :Usage(<file|url>) Desc(Display Goatified Image) Args(1) {
 		return $self->show_usage("show");
 	}
 
-	$self->summon($file)->Display();
+	my $img = $self->summon($file);
+	if (!$img) {
+		$self->gkcd->error_img()->Display();
+		return 0;
+	} 
+	$img->Display();
 	return 1;
 }
 
@@ -63,8 +68,12 @@ sub save  :Usage(<file|url> <output_file>) Desc(Save Goatified Image) Args(2) {
 		return $self->show_usage("save");
 	}
 
-	$self->summon($file);	
-	$self->gkcd->save($output);
+	my $img = $self->summon($file);	
+	if ($img) {
+		$self->gkcd->save($output);
+	} else {
+		die "$file is not valid.";
+	}
 	return 1;
 }
 
