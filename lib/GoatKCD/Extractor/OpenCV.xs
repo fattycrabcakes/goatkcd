@@ -57,18 +57,25 @@ void draw_lines_standard(IplImage* img,IplImage* color_img,CvSeq* lines) {
 }
 */
 
-SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) {
-
-    IplImage* src = cvLoadImage( filename, 0 );
+SV* process_lines(IplImage* orig,int x,int y,int width, int height) {
 
 	SV* retval = newSV(0);
-	if( !src ) {
+	if( !orig ) {
         return retval;
     }
+	//CvSize size = cvGetSize(orig);
+	IplImage* src;// = cvLoadImage( filename, 0 );
+    if (width<1 && height<1) {
+		src = cvCloneImage(orig);
+	} else {
+		cvSetImageROI(orig,cvRect(x,y,width,height));
+		src = cvCreateImage(cvGetSize(orig),8,1);
+		cvCopy(orig,src,NULL);
+		cvResetImageROI(orig);
+	}
+    int i;
 
 	CvSize size = cvGetSize(src);
-
-    int i;
 
 	/* Detect and eliminate text and complex shapes */
 
@@ -155,6 +162,7 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
 	cvReleaseImage(&gray);
 	cvReleaseImage(&morph);
 	cvReleaseImage(&bw);
+	cvReleaseImage(&src);
 	cvReleaseMemStorage(&storage);
 	cvReleaseStructuringElement(&kernel);
 	cvReleaseMemStorage(&contours);
@@ -164,27 +172,49 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
 	return newRV((SV*)data);
 }
 
+IplImage* load_image(const char* filename) {
+	IplImage* src = cvLoadImage( filename, 0 );
+	return src;
+}
+void release_image(IplImage* img) {
+	if (!img) {
+		return;
+	}
+	cvReleaseImage(&img);
+}
+	
+
 
 MODULE = GoatKCD::Extractor::OpenCV  PACKAGE = GoatKCD::Extractor::OpenCV
 PROTOTYPES: DISABLE
 
 SV*
-getlines(input,minLength,rho,theta,threshold)
-	char* input
-	int minLength
-	int rho
-	int theta
-	int threshold
+getlines(input,x,y,width,height)
+	IplImage* input
+	int x
+	int y
+	int width
+	int height
 	CODE:
-		RETVAL = process_lines(input,minLength,rho,theta,threshold);
+		RETVAL = process_lines(input,x,y,width,height);
 	OUTPUT:
 		RETVAL
 
-MODULE = GoatKCD::Extractor::OpenCV  PACKAGE = GoatKCD::Extractor::OpenCV
-int
-echo(input)
-    int input
+MODULE = GoatKCD::Extractor::OpenCV PACKAGE = GoatKCD::Extractor::OpenCV
+PROTOTYPES: DISABLE
+
+IplImage*
+load_img(file)
+	const char* file
 	CODE:
-    RETVAL = (input % 2 == 0);
+		RETVAL = load_image(file);
 	OUTPUT:
-    RETVAL
+		RETVAL
+
+void *
+release_img(img)
+	IplImage* img;
+	CODE:
+		release_image(img);
+	OUTPUT:
+		RETVAL

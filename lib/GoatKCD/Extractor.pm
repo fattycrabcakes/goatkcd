@@ -4,11 +4,14 @@ use strict;
 use Data::Dumper;
 use feature qw(say);
 use Moose;
+with 'Timer';
+
 use GoatKCD::Extractor::OpenCV;
 use Math::Trig;
 use Math::Geometry::Planar;
 use List::Util qw(min max uniqnum);
 use Cv;
+use Time::HiRes;
 
 has min_line_length => (is=>'rw',isa=>'Int',default=>sub { 20; });
 has max_line_gap => (is=>'rw',isa=>'Int',default=>sub { 25; });
@@ -21,16 +24,38 @@ has threshold=>(is=>"rw",isa=>"Int",default=>sub { 10; });
 
 
 has parent=>(is=>'ro',isa=>'GoatKCD',weak_ref=>1);
-has canvas=>(is=>'rw',isa=>'Image::Magick',weak_ref=>1);
+has cvImage=>(is=>'rw');
+has x=>(is=>'rw',isa=>'Int');
+has y=>(is=>'rw',isa=>'Int');
+has width=>(is=>'rw',isa=>'Int');
+has height=>(is=>'rw',isa=>'Int');
 
 
+sub load {
+	my ($self,$imgpath) = @_;
+
+	$self->cvImage(GoatKCD::Extractor::OpenCV::load_img($imgpath));
+}
+
+sub reset {
+	my ($self) = @_;
+
+	if ($self->cvImage) {
+		#GoatKCD::Extractor::OpenCV::release_img($self->cvImage);
+	}
+}
 
 sub extract {
-	my ($self,$imgpath,$canvas,$firstpass) = @_;
+	my ($self,$rect) = @_;
 
-	$self->canvas($canvas);
+	$self->x($rect->[0]);
+	$self->y($rect->[1]);
+	$self->width($rect->[2]-$rect->[0]);
+	$self->height($rect->[3]-$rect->[1]);
 
-	my $data = GoatKCD::Extractor::OpenCV::getlines($imgpath,$self->min_line_length,$self->rho,$self->theta,$self->threshold);
+	#my $data = GoatKCD::Extractor::OpenCV::getlines($imgpath,$self->min_line_length,$self->rho,$self->theta,$self->threshold);
+	my $data;
+	$data = GoatKCD::Extractor::OpenCV::getlines($self->cvImage,$self->x,$self->y,$self->width,$self->height);
 
 	my $lines = $data->{lines};
 	my $checklines = {};
@@ -41,7 +66,6 @@ sub extract {
 	
 
 	my $last=0;
-	my $ct = $self->canvas->Clone;
 
 	my @h;
 	my @v;
@@ -57,11 +81,11 @@ sub extract {
 
 		if ($line->[1]<0) {
                 $line->[1]=0;
-                $line->[3] = $line->[3] = $canvas->Get("height");
+                $line->[3] = $line->[3] = $self->height;
         }
         if ($line->[0]<0) {
             $line->[0]=0;
-            $line->[2]=$canvas->Get("width");
+            $line->[2]=$self->width;
         }
 
 	}
@@ -72,16 +96,13 @@ sub extract {
 	foreach my $line (sort {$a->[0]<=>$b->[0]} grep {abs($_->[0]-$_->[2])<=5} @$lines) {
 		if ($line->[0]-$last>=2 || $last==0) {
 			push(@v,$line);
-		 	$ct->Draw(primitive=>"line",stroke=>"#ff0000",points=>"$line->[0],$line->[1] $line->[2],$line->[3]") if ($self->parent->debug);
 		}
 		$last = $line->[0];
 	}
 
 	$last = 0;
 	ROWL: foreach my $line (sort {$a->[1]<=>$b->[1]} grep {abs($_->[1]-$_->[3])<=5} @$lines) {
-		$ct->Draw(primitive=>"line",stroke=>"#00ff00",points=>"$line->[0],$line->[1] $line->[2],$line->[3]") if ($self->parent->debug);
 		if (abs($line->[1]-$last)>=2 || $last==0) {
-			$ct->Draw(primitive=>"line",stroke=>"#00ff00",points=>"$line->[0],$line->[1] $line->[2],$line->[3]") if ($self->parent->debug);
         	push(@h,$line);
 		}
 			
@@ -116,8 +137,6 @@ sub extract {
  	my $lastrow = $rows[$#rows];
     my $lc = $lastrow->[scalar(@$lastrow)-1];
 
-    $ct->Draw(primitive=>"rectangle",stroke=>"#ffff00",points=>"$lc->[0],$lc->[1] $lc->[2],$lc->[3]") if ($self->parent->debug);
-    $ct->Display() if ($self->parent->debug);
 
 	return [@rows];
 }
@@ -143,13 +162,15 @@ sub collapse_columns {
 					my $xv = $next_column->[0]+int(($next_column->[2]-$next_column->[0])/2);
                		my $yv = $column->[3];
 
-               		my @pa = $self->canvas->GetPixels(
-                   		width=>32,
-                  		height=>2,
-                   		x=>$next_column->[0]+10,
-                   		y=>$yv
-                  	);
-					my $avg = List::Util::sum(@pa)/scalar(@pa);
+               		#my @pa = $self->canvas->GetPixels(
+                   		#width=>32,
+                  		#height=>2,
+                   		#x=>$next_column->[0]+10,
+                   		#y=>$yv
+                  	#);
+					#my $avg = List::Util::sum(@pa)/scalar(@pa);
+
+					my $avg = 30;
 				
 					# TODO: Figure out a better way to do this.			
 
@@ -167,7 +188,6 @@ sub collapse_columns {
 		}
     	$row = [@row_tmp];
 	}
-	undef $self->{canvas};
     return @rows;
 }
 
@@ -211,7 +231,6 @@ sub collapse_rows {
     @rows = @row_tmp;
     return sort {$a->[0]->[1]<=>$b->[0]->[1]} @rows;
 }
-
 
 __PACKAGE__->meta->make_immutable;
 

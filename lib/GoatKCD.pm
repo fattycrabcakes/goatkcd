@@ -15,6 +15,7 @@ use Try::Tiny;
 use List::Util;
 use Getopt::Long;
 use Moose;
+with 'Timer';
 use Time::HiRes;
 use Web::Scraper;
 use feature qw(say);
@@ -44,7 +45,8 @@ sub summon_the_goatman {
 	my $rows;
 	my $y_offset = 0;
 
-	$rows = $self->extract_rows($canvas,1);
+	$rows = $self->extract_rows([0,0,$canvas->Get("width"),$canvas->Get('height')],1);
+	$self->log("rows",$rows);
 	return if (!defined $rows);
 
 	$self->log("Rows from extractor:",$rows);
@@ -71,18 +73,21 @@ sub summon_the_goatman {
 				my $row_height = $last_row->[3] - $last_row->[1];
 				my $bottom_padding = $bottom_edge - ($y_offset+$row_height);
 
-				my $canvas_tmp = $canvas->Clone();
-				$canvas_tmp->Crop(width=>$canvas->Get("width"),height=>$row_height+$bottom_padding,x=>0,y=>$y_offset);
+				#my $canvas_tmp = $canvas->Clone();
+				#$canvas_tmp->Crop(width=>$canvas->Get("width"),height=>$row_height+$bottom_padding,x=>0,y=>$y_offset);
+
 				$bottom_edge = $y_offset;
 				my $x_offset = 0;
 
-				my ($just_this_row) = $self->extract_rows($canvas_tmp);
+				my ($just_this_row) = $self->extract_rows([0,$y_offset,$canvas->Get("width"),$y_offset+$row_height+$bottom_padding]);
 
+
+				# TODO: Irregular values in beastmode.
 				if (defined $just_this_row && scalar(@$just_this_row)>1) {
 					my $jlp = $just_this_row->[scalar(@$just_this_row)-1];
 
-					$canvas_tmp->Crop(width=>$jlp->[2]-$jlp->[0],height=>$jlp->[3]-$jlp->[1],x=>$jlp->[0],y=>$jlp->[1]);
-					my $last_column = $self->extract_rows($canvas_tmp);
+					#$canvas_tmp->Crop(width=>$jlp->[2]-$jlp->[0],height=>$jlp->[3]-$jlp->[1],x=>$jlp->[0],y=>$jlp->[1]);
+					my $last_column = $self->extract_rows($jlp);
 					$self->log("hey now",$last_column);
 					$jlp = $last_column->[0];
 				}
@@ -245,10 +250,14 @@ sub load_canvas {
 	}
 
 	my $canvas = Image::Magick->new();
-    $canvas->Set(size=>($w+$self->pad_by)."x".($h+$self->pad_by));
-    $canvas->Read('xc:white');
-    $canvas->Composite(image=>$tmp,compose=>"over",gravity=>"Center");
+
+   	$canvas->Set(size=>($w+$self->pad_by)."x".($h+$self->pad_by));
+   	$canvas->Read('xc:white');
+   	$canvas->Composite(image=>$tmp,compose=>"over",gravity=>"Center");
+
+	$self->processor->load($self->mktmp($canvas));
 	$self->canvas($canvas);
+
 
 	return $canvas;
 }
@@ -256,9 +265,7 @@ sub load_canvas {
 sub mktmp {
 	my ($self,$img) = @_;
 
-
 	my $p = join("/",$self->tmpdir,$self->tmpfile);	
-
 	$img->Write($p);
 	return $p;
 }
@@ -272,16 +279,17 @@ sub cleartmp {
 
 sub reset {
 	my $self = shift;
-
+	
+	$self->processor->reset();
 	$self->rows([]);
 }
 
 sub extract_rows {
-	my ($self,$img,$firstpass) = @_;
+	my ($self,$rect) = @_;
 
 	my $rows=[];
-	my $tmpf = $self->mktmp($img);
-	$rows = $self->processor->extract($tmpf,$img,$firstpass);
+	#my $tmpf = $self->mktmp($img);
+	$rows = $self->processor->extract($rect);#$tmpf,$img,$firstpass);
 	return wantarray?@$rows:$rows;
 }
 

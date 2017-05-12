@@ -66,18 +66,25 @@ void draw_lines_standard(IplImage* img,IplImage* color_img,CvSeq* lines) {
 }
 */
 
-SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) {
-
-    IplImage* src = cvLoadImage( filename, 0 );
+SV* process_lines(IplImage* orig,int x,int y,int width, int height) {
 
 	SV* retval = newSV(0);
-	if( !src ) {
+	if( !orig ) {
         return retval;
     }
+	//CvSize size = cvGetSize(orig);
+	IplImage* src;// = cvLoadImage( filename, 0 );
+    if (width<1 && height<1) {
+		src = cvCloneImage(orig);
+	} else {
+		cvSetImageROI(orig,cvRect(x,y,width,height));
+		src = cvCreateImage(cvGetSize(orig),8,1);
+		cvCopy(orig,src,NULL);
+		cvResetImageROI(orig);
+	}
+    int i;
 
 	CvSize size = cvGetSize(src);
-
-    int i;
 
 	/* Detect and eliminate text and complex shapes */
 
@@ -164,6 +171,7 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
 	cvReleaseImage(&gray);
 	cvReleaseImage(&morph);
 	cvReleaseImage(&bw);
+	cvReleaseImage(&src);
 	cvReleaseMemStorage(&storage);
 	cvReleaseStructuringElement(&kernel);
 	cvReleaseMemStorage(&contours);
@@ -173,8 +181,20 @@ SV* process_lines(char* filename,int minLength,int rho,int theta,int threshold) 
 	return newRV((SV*)data);
 }
 
+IplImage* load_image(const char* filename) {
+	IplImage* src = cvLoadImage( filename, 0 );
+	return src;
+}
+void release_image(IplImage* img) {
+	if (!img) {
+		return;
+	}
+	cvReleaseImage(&img);
+}
+	
 
-#line 178 "lib/GoatKCD/Extractor/OpenCV.c"
+
+#line 198 "lib/GoatKCD/Extractor/OpenCV.c"
 #ifndef PERL_UNUSED_VAR
 #  define PERL_UNUSED_VAR(var) if (0) var = var
 #endif
@@ -318,29 +338,37 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 #  define newXS_deffile(a,b) Perl_newXS_deffile(aTHX_ a,b)
 #endif
 
-#line 322 "lib/GoatKCD/Extractor/OpenCV.c"
+#line 342 "lib/GoatKCD/Extractor/OpenCV.c"
 
 XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_getlines); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_getlines)
 {
     dVAR; dXSARGS;
     if (items != 5)
-       croak_xs_usage(cv,  "input, minLength, rho, theta, threshold");
+       croak_xs_usage(cv,  "input, x, y, width, height");
     {
-	char*	input = (char *)SvPV_nolen(ST(0))
+	IplImage*	input;
+	int	x = (int)SvIV(ST(1))
 ;
-	int	minLength = (int)SvIV(ST(1))
+	int	y = (int)SvIV(ST(2))
 ;
-	int	rho = (int)SvIV(ST(2))
+	int	width = (int)SvIV(ST(3))
 ;
-	int	theta = (int)SvIV(ST(3))
-;
-	int	threshold = (int)SvIV(ST(4))
+	int	height = (int)SvIV(ST(4))
 ;
 	SV *	RETVAL;
-#line 179 "lib/GoatKCD/Extractor/OpenCV.xs"
-		RETVAL = process_lines(input,minLength,rho,theta,threshold);
-#line 344 "lib/GoatKCD/Extractor/OpenCV.c"
+
+	if (sv_isobject(ST(0)) && sv_derived_from(ST(0), "Cv::Image")) {
+		input = INT2PTR(IplImage *, SvIV((SV*)SvRV(ST(0))));
+	} else if (SvROK(ST(0)) && SvIOK(SvRV(ST(0))) && SvIV(SvRV(ST(0))) == 0) {
+		input = (IplImage *)0;
+	} else
+		Perl_croak(aTHX_ "%s is not of type %s in %s",
+			"input", "IplImage *", "GoatKCD::Extractor::OpenCV::getlines")
+;
+#line 199 "lib/GoatKCD/Extractor/OpenCV.xs"
+		RETVAL = process_lines(input,x,y,width,height);
+#line 372 "lib/GoatKCD/Extractor/OpenCV.c"
 	RETVAL = sv_2mortal(RETVAL);
 	ST(0) = RETVAL;
     }
@@ -348,21 +376,53 @@ XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_getlines)
 }
 
 
-XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_echo); /* prototype to pass -Wmissing-prototypes */
-XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_echo)
+XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_load_img); /* prototype to pass -Wmissing-prototypes */
+XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_load_img)
 {
     dVAR; dXSARGS;
     if (items != 1)
-       croak_xs_usage(cv,  "input");
+       croak_xs_usage(cv,  "file");
     {
-	int	input = (int)SvIV(ST(0))
+	const char*	file = (const char *)SvPV_nolen(ST(0))
 ;
-	int	RETVAL;
+	IplImage *	RETVAL;
+#line 210 "lib/GoatKCD/Extractor/OpenCV.xs"
+		RETVAL = load_image(file);
+#line 392 "lib/GoatKCD/Extractor/OpenCV.c"
+	{
+	    SV * RETVALSV;
+	    RETVALSV = sv_newmortal();
+	    sv_setref_pv(RETVALSV, "Cv::Image", (void*)RETVAL);
+	    ST(0) = RETVALSV;
+	}
+    }
+    XSRETURN(1);
+}
+
+
+XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_release_img); /* prototype to pass -Wmissing-prototypes */
+XS_EUPXS(XS_GoatKCD__Extractor__OpenCV_release_img)
+{
+    dVAR; dXSARGS;
+    if (items != 1)
+       croak_xs_usage(cv,  "img");
+    {
+	IplImage*	img;
+	void *	RETVAL;
 	dXSTARG;
-#line 188 "lib/GoatKCD/Extractor/OpenCV.xs"
-    RETVAL = (input % 2 == 0);
-#line 365 "lib/GoatKCD/Extractor/OpenCV.c"
-	XSprePUSH; PUSHi((IV)RETVAL);
+
+	if (sv_isobject(ST(0)) && sv_derived_from(ST(0), "Cv::Image")) {
+		img = INT2PTR(IplImage *, SvIV((SV*)SvRV(ST(0))));
+	} else if (SvROK(ST(0)) && SvIOK(SvRV(ST(0))) && SvIV(SvRV(ST(0))) == 0) {
+		img = (IplImage *)0;
+	} else
+		Perl_croak(aTHX_ "%s is not of type %s in %s",
+			"img", "IplImage *", "GoatKCD::Extractor::OpenCV::release_img")
+;
+#line 218 "lib/GoatKCD/Extractor/OpenCV.xs"
+		release_image(img);
+#line 425 "lib/GoatKCD/Extractor/OpenCV.c"
+	XSprePUSH; PUSHi(PTR2IV(RETVAL));
     }
     XSRETURN(1);
 }
@@ -396,7 +456,8 @@ XS_EXTERNAL(boot_GoatKCD__Extractor__OpenCV)
 #endif
 
         newXS_deffile("GoatKCD::Extractor::OpenCV::getlines", XS_GoatKCD__Extractor__OpenCV_getlines);
-        newXS_deffile("GoatKCD::Extractor::OpenCV::echo", XS_GoatKCD__Extractor__OpenCV_echo);
+        newXS_deffile("GoatKCD::Extractor::OpenCV::load_img", XS_GoatKCD__Extractor__OpenCV_load_img);
+        newXS_deffile("GoatKCD::Extractor::OpenCV::release_img", XS_GoatKCD__Extractor__OpenCV_release_img);
 #if PERL_VERSION_LE(5, 21, 5)
 #  if PERL_VERSION_GE(5, 9, 0)
     if (PL_unitcheckav)
