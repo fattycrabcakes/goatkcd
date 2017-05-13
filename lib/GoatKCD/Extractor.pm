@@ -3,25 +3,25 @@ package GoatKCD::Extractor;
 use strict;
 use Data::Dumper;
 use feature qw(say);
-use Moose;
+use Moo;
 with 'Timer';
 with 'Toggler';
 
 use GoatKCD::Extractor::OpenCV;
 use List::Util qw(min max uniqnum);
 
-has min_line_length => (is=>'rw',isa=>'Int',default=>sub { 20; });
-has max_line_gap => (is=>'rw',isa=>'Int',default=>sub { 25; });
-has min_rect_thickness =>(is=>'rw',isa=>'Int',default=>sub { 35; });
-has collapse_proximity=>(is=>'rw',isa=>'Int',default=>sub { 3; });
+has min_line_length => (is=>'rw',,default=>sub { 20; });
+has max_line_gap => (is=>'rw',,default=>sub { 25; });
+has min_rect_thickness =>(is=>'rw',,default=>sub { 35; });
+has collapse_proximity=>(is=>'rw',,default=>sub { 3; });
 
-has parent=>(is=>'ro',isa=>'GoatKCD',weak_ref=>1);
+has parent=>(is=>'ro',,weak_ref=>1);
 has cvImage=>(is=>'rw');
-has x=>(is=>'rw',isa=>'Int');
-has y=>(is=>'rw',isa=>'Int');
-has width=>(is=>'rw',isa=>'Int');
-has height=>(is=>'rw',isa=>'Int');
-has consolidate_rows=>(is=>'rw',isa=>'Int',default=>sub { 0; });
+has x=>(is=>'rw');
+has y=>(is=>'rw');
+has width=>(is=>'rw');
+has height=>(is=>'rw');
+has consolidate_rows=>(is=>'rw',default=>sub { 0; });
 
 
 sub load {

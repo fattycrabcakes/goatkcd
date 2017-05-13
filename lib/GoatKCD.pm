@@ -1,5 +1,3 @@
-#5!/usr/bin/env perl
-
 package GoatKCD;
 
 use strict;
@@ -16,7 +14,7 @@ use Try::Tiny;
 use List::Util;
 use Image::ExifTool;
 use JSON;
-use Moose;
+use Moo;
 
 with 'Timer';
 with 'Toggler';
@@ -28,19 +26,19 @@ our $VERSION = "1.0.0";
 $Data::Dumper::Indent = 0;
 $Data::Dumper::Terse=1;
 
-has 'beastmode'=>(is=>'rw',isa=>'Bool',default=>sub { 0; });
-has 'tmpfile'=>(is=>'rw',isa=>'Str',default=>sub { sprintf("%d-%d.jpg",$$,time()); });
-has 'debug'=>(is=>'rw',isa=>'Int',default=>sub { 0; });
-has 'canvas'=>(is=>'rw',isa=>'Image::Magick');
-has 'rows'=>(is=>'rw',isa=>'Any',default=>sub { []; });
-has 'stinger'=>(is=>'rw',isa=>'Image::Magick',default=>sub {__PACKAGE__->load_img("/usr/share/goatkcd/hello.jpg");});
-has 'pad_by'=>(is=>'rw',isa=>'Int',default=> sub { 20; });
-has tmpdir=>(is=>'rw',isa=>'Str',default=>sub { "/tmp/"; });
-has processor=>(is=>'rw',isa=>'GoatKCD::Extractor',default=>sub {GoatKCD::Extractor->new(parent=>shift);});
-has auto_goatify=>(is=>'rw',isa=>'Str',default=>sub { 1; });
-has maxheight=>(is=>'rw',isa=>'Int',default=>sub { 640; });
-has border=>(is=>'rw',isa=>'Int',default=>sub { 1; });
-has error=>(is=>'rw',isa=>'Int',default=>sub { 0; });
+has 'beastmode'=>(is=>'rw',default=> 0);
+has 'tmpfile'=>(is=>'rw',default=>sub { sprintf("%d-%d.jpg",$$,time()); });
+has 'debug'=>(is=>'rw',,default=>sub { 0; });
+has 'canvas'=>(is=>'rw');
+has 'rows'=>(is=>'rw',default=>sub { []; });
+has 'stinger'=>(is=>'rw',,default=>sub {__PACKAGE__->load_img("/usr/share/goatkcd/hello.jpg");});
+has 'pad_by'=>(is=>'rw',default=> sub { 20; });
+has tmpdir=>(is=>'rw',,default=>sub { "/tmp/"; });
+has processor=>(is=>'rw',,default=>sub {GoatKCD::Extractor->new(parent=>shift);});
+has auto_goatify=>(is=>'rw',,default=>sub { 1; });
+has maxheight=>(is=>'rw',,default=>sub { 640; });
+has border=>(is=>'rw',,default=>sub { 1; });
+has error=>(is=>'rw',default=>sub { 0; });
 
 sub summon_the_goatman {
 	my ($self,$path) = @_;

@@ -1,5 +1,5 @@
 package Timer;
-use Moose::Role;
+use Mouse::Role;
 use Time::HiRes;
 use feature qw(say);
 

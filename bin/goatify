@@ -10,7 +10,7 @@ use feature qw(say);
 my $cli = GoatKCD::CLI->new();
 
 if (scalar(@ARGV)) {
-	
+	$cli->cl(1);
 	$cli->commandline(@ARGV);
 
 } else {

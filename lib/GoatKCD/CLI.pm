@@ -6,16 +6,17 @@ use Term::ReadLine;
 use Web::Scraper;
 use URI;
 use Try::Tiny;
-use Math::Geometry::Planar qw(SegmentIntersection);
 use feature qw(say);
 use Moose;
 use MooseX::MethodAttributes;
 
+#use MooseX::MethodAttributes;
+
 $Data::Dumper::Indent = 1;
 
-has gkcd=>(is=>'ro',isa=>'GoatKCD',default=>sub { GoatKCD->new(); });
-has term=>(is=>'ro',default=>sub { Term::ReadLine->new(); });
-has cli=>(is=>'rw',default=>sub { 0; });
+has gkcd=>(is=>'ro',default=>sub { GoatKCD->new();});
+has term=>(is=>'ro',default=>sub { Term::ReadLine->new()});
+has cl=>(is=>'rw',default=>0);
 
 sub command {
 	my ($self,$command,@args) = @_;
@@ -40,7 +41,7 @@ sub main {
 	}
 }
 
-sub quit :Usage() :Desc(Quit goatifying things and return to your usual routine of disgusting self-abuse) {
+sub quit :Usage() Desc(Quit goatifying things and return to your usual routine of disgusting self-abuse) {
 	exit;
 }
 
@@ -91,7 +92,9 @@ sub border :Usage(<thickness>) Desc(Set panel border thickness) Args(1) {
 sub beastmode :Usage() Desc(Toggle Beast mode) {
 	my $self = shift;
 
-	say $self->gkcd->toggle("beastmode");
+
+	my $t = $self->gkcd->toggle("beastmode");
+	say $t if (!$self->cl); 
 	return 1;
 	
 }
@@ -99,14 +102,16 @@ sub beastmode :Usage() Desc(Toggle Beast mode) {
 sub debug :Usage() Desc(Toggle debug messages) {
 	my ($self) = @_;
 
-	say $self->gkcd->toggle("debug");
+	my $t =  $self->gkcd->toggle("debug");
+	say $t if (!$self->cl);
 	return 1;
 }
 
 sub consolidate_rows :Usage() Desc(Toggle Row consolidation) {
     my ($self) = @_;
 
-    say $self->gkcd->processor->toggle("consolidate_rows");
+    my $t = $self->gkcd->processor->toggle("consolidate_rows");
+	say $t if (!$self->cl);
 	return 1;
 }
 
@@ -148,6 +153,7 @@ sub rcomic :Usage(<start> <end>) Desc(Show random comic) Args(2) {
         return $self->show_usage("rcomic");
     }
 	my $id = $start+int(rand($end-$start));
+	say "Loding comic $id" if (!$self->cl);
 	$self->comic($id);
 	return 1;
 }
@@ -232,6 +238,7 @@ sub print_usage {
     say "";
 	return "";
 }
+
 
 __PACKAGE__->meta->make_immutable;
 
