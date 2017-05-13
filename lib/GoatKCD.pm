@@ -13,7 +13,7 @@ use Data::Dumper;
 use Try::Tiny;
 use List::Util;
 use Image::ExifTool;
-use JSON;
+use JSON::XS;
 use Moo;
 
 with 'Timer';
@@ -160,16 +160,18 @@ sub save {
 	my ($self,$path) = @_;
 
 	$self->canvas->Write($path);
+
 	my $exif = Image::ExifTool->new();
+
 	$exif->ExtractInfo($path);
 
-	$exif->SetNewValue("Description"=>JSON::encode_json({rows=>[$self->rows]}));
-	#https://www.google.com/maps/place/Dildo+Island/@47.5663175,-53.5933158,17z/data=!4m13!1m7!3m6!1s0x4b7339fde3e5c105:0x52a18dbee73dd5e4!2sDildo+Island!3b1!8m2!3d47.5661422!4d-53.5911019!3m4!1s0x4b7339fde3e5c105:0x52a18dbee73dd5e4!8m2!3d47.5661422!4d-53.5911019
+	$exif->SetNewValue("Description"=>JSON::XS::encode_json({rows=>[$self->rows]}));
 	$exif->SetNewValue('GPSLatitudeRef'=>'N');
 	$exif->SetNewValue('GPSLongitudeRef'=>'W');
 	$exif->SetNewValue('GPSLatitude'=>47.5663175);
     $exif->SetNewValue('GPSLongitude'=>53.5933158);
 	$exif->SetNewValue('ProcessingSoftware'=>'GoatKCD.pm v6.6.6');
+
 	$exif->WriteInfo($path);
 	
 }

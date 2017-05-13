@@ -10,8 +10,6 @@ use feature qw(say);
 use Moose;
 use MooseX::MethodAttributes;
 
-#use MooseX::MethodAttributes;
-
 $Data::Dumper::Indent = 1;
 
 has gkcd=>(is=>'ro',default=>sub { GoatKCD->new();});
@@ -57,6 +55,7 @@ sub show :Usage(<file|url>) Desc(Display Goatified Image) Args(1) {
 		$self->gkcd->error_img()->Display();
 		return 0;
 	} 
+
 	$img->Display();
 	return 1;
 }
@@ -68,10 +67,11 @@ sub save  :Usage(<file|url> <output_file>) Desc(Save Goatified Image) Args(2) {
 	if (!$file && !$output) {
 		return $self->show_usage("save");
 	}
-
 	my $img = $self->summon($file);	
 	if ($img) {
-		$self->gkcd->save($output);
+			$self->gkcd->time_op("Save",sub {
+				$self->gkcd->save($output);
+			});
 	} else {
 		die "$file is not valid.";
 	}
@@ -134,19 +134,21 @@ sub stinger :Usage(<file>) Desc(Use another image instead of our dear Mr. Johnso
 sub comic :Usage([<number>|<range_start> <range_end>]) Desc(Scrape directly from xkcd. 0 for latest) Args(1) {
 	my ($self,$id) = @_;
 
-	if (!length($id) && $id!~/^\d+$/) {
+	if (!length($id)) {
 		return $self->show_usage("comic");
 	}
 
+	say STDERR $id;
+
 	my $res = scraper {
 		process 'div#comic img',img=>'@src';
-	}->scrape(URI->new(sprintf("https://xkcd.com/%d",($id)?$id:'')));
+	}->scrape(URI->new(sprintf("https://xkcd.com/%s",($id)?$id:'')));
 
 	$self->summon($res->{img})->Display();
 	return 1;
 }
 
-sub rcomic :Usage(<start> <end>) Desc(Show random comic) Args(2) {
+sub random :Usage(<start> <end>) Desc(Show random comic) Args(2) {
 	 my ($self,$start,$end) = @_;
 
 	if (!$start && !$end) {
@@ -238,8 +240,6 @@ sub print_usage {
     say "";
 	return "";
 }
-
-
 __PACKAGE__->meta->make_immutable;
 
 1;
