@@ -4,6 +4,7 @@ use strict;
 use Data::Dumper;
 use feature qw(say);
 use Moo;
+
 with 'Timer';
 with 'Toggler';
 
@@ -49,8 +50,13 @@ sub extract {
 
 	#my $data = GoatKCD::Extractor::OpenCV::getlines($imgpath,$self->min_line_length,$self->rho,$self->theta,$self->threshold);
 	my $data;
-	my $color = ($self->parent->canvas->get("colors")>256)?1:0;
-	$data = GoatKCD::Extractor::OpenCV::getlines($self->cvImage,$self->x,$self->y,$self->width,$self->height,$color);
+	$data = GoatKCD::Extractor::OpenCV::getlines($self,$self->cvImage,{
+		x=>$self->x,
+		y=>$self->y,
+		width=>$self->width,
+		height=>$self->height,
+		mode=>$self->parent->is_color
+	});
 
 	my $lines = $data->{lines};
 	my $checklines = {};

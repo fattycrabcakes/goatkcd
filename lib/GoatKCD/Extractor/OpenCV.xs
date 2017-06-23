@@ -29,13 +29,32 @@ void showImage(IplImage* img,const char* title) {
   cvWaitKey(0);
 }
 
+int get_int(HV* hash,const char* k,int kl) {
+	if (!hv_exists(hash,k,kl)) {
+		return 0;
+	} else {
+			SV** res  = hv_fetch(hash,k,kl,0);
+			return SvIV(res[0]);
+	}
+}
 
-SV* process_lines(IplImage* orig,int x,int y,int width, int height,int mode) {
+
+SV* process_lines(SV* obj,IplImage* orig,SV* p) {
+
+	HV* extractor = (HV*)SvRV(obj);
+	HV* params = (HV*)SvRV(p);
+
+	int x = get_int(params,"x",1);
+	int y = get_int(params,"y",1);
+	int width = get_int(params,"width",5);
+	int height = get_int(params,"height",6);
+	int mode = get_int(params,"mode",4);
 
 	SV* retval = newSV(0);
 	if( !orig ) {
         return retval;
     }
+		IplImage* src;
     if (width<1 && height<1) {
 			src = cvCloneImage(orig);
 		} else {
@@ -51,25 +70,32 @@ SV* process_lines(IplImage* orig,int x,int y,int width, int height,int mode) {
   	IplImage* bw = cvCreateImage(size, 8, 1 );
 		CvMemStorage* storage = cvCreateMemStorage(0);
 
-	
 
 		IplImage* morph = cvCloneImage(src);
-		IplImage* transitional = cvCreateImage(size,8,1);
+		IplImage* transitional;
 
-		//IplImage* transitional = cvCloneImage(src);
-  	cvThreshold(src,transitional,128.0,255,CV_THRESH_BINARY_INV);
+		if (mode==BW) {
+				transitional = cvCreateImage(size,8,1);
+  			cvThreshold(src,transitional,128.0,255,CV_THRESH_BINARY);
+		} else {
+				transitional = cvCloneImage(src);
+		}
+
+		//showImage(transitional,"what");
 
   	IplConvKernel* kernel = cvCreateStructuringElementEx(3,3,0,0,MORPH_ELLIPSE,NULL);
   	cvMorphologyEx(morph,grad,storage,kernel,MORPH_GRADIENT,1);
   	cvThreshold(grad,bw,0.0,225.0, THRESH_BINARY | THRESH_OTSU);
 
+
 		cvReleaseImage(&morph);
 		cvReleaseImage(&grad);
+	
 		
 		IplImage* gray = cvCreateImage(size, 8, 1 );
 		cvCanny( transitional, gray, 20, 138, 3 );
-
 		cvReleaseImage(&transitional);
+
 
   	CvSeq *contours = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvPoint), storage);
 		cvClearMemStorage(storage);
@@ -92,6 +118,7 @@ SV* process_lines(IplImage* orig,int x,int y,int width, int height,int mode) {
 				}
     	}
 		}
+
 		//showImage(gray,"gray");
 		
 	HV* data = newHV();
@@ -111,20 +138,24 @@ SV* process_lines(IplImage* orig,int x,int y,int width, int height,int mode) {
         pt2.x = cvRound(x0 - 1000*(-b));
         pt2.y = cvRound(y0 - 1000*(a));
         if (abs(pt2.x-pt1.x)<=5 || abs(pt1.y-pt2.y)<=5) {
-
-			AV* ltt;
-            ltt  = newAV();
-			av_push(ltt,newSViv(pt1.x));
+					AV* ltt;
+          ltt  = newAV();
+						av_push(ltt,newSViv(pt1.x));
             av_push(ltt,newSViv(pt1.y));
-			av_push(ltt,newSViv(pt2.x));
+						av_push(ltt,newSViv(pt2.x));
             av_push(ltt,newSViv(pt2.y));
-			av_push(slines,newRV((SV*)ltt));
+						av_push(slines,newRV((SV*)ltt));
+				}
+		}
+		hv_store(data,"lines",5,newRV((SV*)slines),0);
+
+
 
 	cvClearMemStorage(storage);
 
-	lines = cvHoughLines2( gray, storage, CV_HOUGH_PROBABILISTIC, 1, (CV_PI/180), 50, 50, 10 );
+	/* lines = cvHoughLines2( gray, storage, CV_HOUGH_PROBABILISTIC, 1, (CV_PI/180), 50, 50, 10 );
 
-	AV* plines = newAV();
+		AV* plines = newAV();
     for(int i = 0; i<lines->total; i++ ) {
         CvPoint* line = (CvPoint*)cvGetSeqElem(lines,i);
         if (abs(line[0].y-line[1].y)<=5) {
@@ -137,6 +168,7 @@ SV* process_lines(IplImage* orig,int x,int y,int width, int height,int mode) {
         }
     }
 	cvClearMemStorage(lines->storage);
+	*/
 
 	cvReleaseImage(&src);
 	cvReleaseMemStorage(&storage);
@@ -144,7 +176,8 @@ SV* process_lines(IplImage* orig,int x,int y,int width, int height,int mode) {
 	cvReleaseMemStorage(&contours);
 
 
-	hv_store(data,"checklines",10,newRV((SV*)plines),0);
+
+	//hv_store(data,"checklines",10,newRV((SV*)plines),0);
 	return newRV((SV*)data);
 }
 
@@ -165,15 +198,12 @@ MODULE = GoatKCD::Extractor::OpenCV  PACKAGE = GoatKCD::Extractor::OpenCV
 PROTOTYPES: DISABLE
 
 SV*
-getlines(input,x,y,width,height,mode)
+getlines(extractor,input,params);
+	SV* extractor
 	IplImage* input
-	int x
-	int y
-	int width
-	int height
-	int mode
+	SV* params
 	CODE:
-		RETVAL = process_lines(input,x,y,width,height,mode);
+		RETVAL = process_lines(extractor,input,params);
 	OUTPUT:
 		RETVAL
 
