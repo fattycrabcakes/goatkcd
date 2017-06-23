@@ -39,11 +39,7 @@ sub main {
 	}
 }
 
-<<<<<<< HEAD
 sub quit :Usage() Desc(Quit goatifying things ) {
-=======
-sub quit :Usage() Desc(Quit goatifying things and return to your usual routine of disgusting self-abuse) {
->>>>>>> b67fb62f4a58cd782599329d775a727b518f3c6c
 	exit;
 }
 
@@ -135,18 +131,13 @@ sub stinger :Usage(<file>) Desc(Use another image instead of our dear Mr. Johnso
 	return 1;
 }
 
-<<<<<<< HEAD
 sub comic :Usage(<number>) Desc(Scrape directly from xkcd. 0 for latest) Args(1) {
-=======
-sub comic :Usage([<number>|<range_start> <range_end>]) Desc(Scrape directly from xkcd. 0 for latest) Args(1) {
->>>>>>> b67fb62f4a58cd782599329d775a727b518f3c6c
 	my ($self,$id) = @_;
 
 	if (!length($id)) {
 		return $self->show_usage("comic");
 	}
 
-<<<<<<< HEAD
 	my $res;
 	try {
 		$res = scraper {
@@ -169,18 +160,6 @@ sub latest :Usage() Desc(Latest Comic) Args(0) {
 	$self->comic(0);
 }
 	
-=======
-	say STDERR $id;
-
-	my $res = scraper {
-		process 'div#comic img',img=>'@src';
-	}->scrape(URI->new(sprintf("https://xkcd.com/%s",($id)?$id:'')));
-
-	$self->summon($res->{img})->Display();
-	return 1;
-}
->>>>>>> b67fb62f4a58cd782599329d775a727b518f3c6c
-
 sub random :Usage(<start> <end>) Desc(Show random comic) Args(2) {
 	 my ($self,$start,$end) = @_;
 
@@ -252,10 +231,6 @@ sub commandline {
     }
 }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> b67fb62f4a58cd782599329d775a727b518f3c6c
 sub show_usage {
 	my $self = shift;
 	my $name = shift;

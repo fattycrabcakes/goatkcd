@@ -35,6 +35,6 @@ WriteMakefile(
   LICENSE        => 'unlicensed',
   XSMULTI        => 1,
   TYPEMAPS		=>["lib/typemap"],
-  "EXE_FILES"	=>["bin/goatify"],
+  "EXE_FILES"	=>["scripts/goatify"],
   dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
 );

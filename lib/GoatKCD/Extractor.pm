@@ -46,9 +46,11 @@ sub extract {
 	$self->width($rect->[2]-$rect->[0]);
 	$self->height($rect->[3]-$rect->[1]);
 
+
 	#my $data = GoatKCD::Extractor::OpenCV::getlines($imgpath,$self->min_line_length,$self->rho,$self->theta,$self->threshold);
 	my $data;
-	$data = GoatKCD::Extractor::OpenCV::getlines($self->cvImage,$self->x,$self->y,$self->width,$self->height);
+	my $color = ($self->parent->canvas->get("colors")>256)?1:0;
+	$data = GoatKCD::Extractor::OpenCV::getlines($self->cvImage,$self->x,$self->y,$self->width,$self->height,$color);
 
 	my $lines = $data->{lines};
 	my $checklines = {};
