@@ -1,14 +1,14 @@
 package GoatKCD::CLI;
 
 use GoatKCD;
+use Modern::Perl;
 use Data::Dumper;
 use Term::ReadLine;
 use Web::Scraper;
 use URI;
 use Try::Tiny;
 use feature qw(say);
-use Moose;
-use MooseX::MethodAttributes;
+use Moo;
 
 $Data::Dumper::Indent = 1;
 
@@ -19,7 +19,7 @@ has cl=>(is=>'rw',default=>0);
 sub command {
 	my ($self,$command,@args) = @_;
 
-	my ($sub) = $self->commandlist($command);
+	my ($sub) = $self->commandlist->{$command};
     if ($sub) {
     	$self->$command(@args);
     } else {
@@ -39,11 +39,11 @@ sub main {
 	}
 }
 
-sub quit :Usage() Desc(Quit goatifying things ) {
+sub quit  {
 	exit;
 }
 
-sub show :Usage(<file|url>) Desc(Display Goatified Image) Args(1) {
+sub show {
 	my ($self,$file) = @_;
 
 	if (!$file) {
@@ -60,7 +60,7 @@ sub show :Usage(<file|url>) Desc(Display Goatified Image) Args(1) {
 	return 1;
 }
 
-sub save  :Usage(<file|url> <output_file>) Desc(Save Goatified Image) Args(2) {
+sub save {
 	my ($self,$file,$output) = @_;
 
 
@@ -78,7 +78,7 @@ sub save  :Usage(<file|url> <output_file>) Desc(Save Goatified Image) Args(2) {
 	return 1;
 }
 
-sub border :Usage(<thickness>) Desc(Set panel border thickness) Args(1) {
+sub border {
 	my ($self,$thickness) = @_;
 
 	if (defined $thickness) {
@@ -89,7 +89,7 @@ sub border :Usage(<thickness>) Desc(Set panel border thickness) Args(1) {
 	return 1;
 }
 
-sub beastmode :Usage() Desc(Toggle Beast mode) {
+sub beastmode {
 	my $self = shift;
 
 
@@ -99,7 +99,7 @@ sub beastmode :Usage() Desc(Toggle Beast mode) {
 	
 }
 
-sub debug :Usage() Desc(Toggle debug messages) {
+sub debug {
 	my ($self) = @_;
 
 	my $t =  $self->gkcd->toggle("debug");
@@ -107,7 +107,7 @@ sub debug :Usage() Desc(Toggle debug messages) {
 	return 1;
 }
 
-sub consolidate_rows :Usage() Desc(Toggle Row consolidation) {
+sub consolidate_rows {
     my ($self) = @_;
 
     my $t = $self->gkcd->processor->toggle("consolidate_rows");
@@ -116,7 +116,7 @@ sub consolidate_rows :Usage() Desc(Toggle Row consolidation) {
 }
 
 
-sub stinger :Usage(<file>) Desc(Use another image instead of our dear Mr. Johnson) Args(1)  {
+sub stinger  {
 	my ($self,$img) = @_;
 
 	if (!$img) {
@@ -131,7 +131,7 @@ sub stinger :Usage(<file>) Desc(Use another image instead of our dear Mr. Johnso
 	return 1;
 }
 
-sub comic :Usage(<number>) Desc(Scrape directly from xkcd. 0 for latest) Args(1) {
+sub comic {
 	my ($self,$id) = @_;
 
 	if (!length($id)) {
@@ -154,13 +154,13 @@ sub comic :Usage(<number>) Desc(Scrape directly from xkcd. 0 for latest) Args(1)
 	return 1;
 }
 
-sub latest :Usage() Desc(Latest Comic) Args(0) {
+sub latest {
 	my($self) = @_;
 
 	$self->comic(0);
 }
 	
-sub random :Usage(<start> <end>) Desc(Show random comic) Args(2) {
+sub random {
 	 my ($self,$start,$end) = @_;
 
 	if (!$start && !$end) {
@@ -172,63 +172,31 @@ sub random :Usage(<start> <end>) Desc(Show random comic) Args(2) {
 	return 1;
 }
 
-
 sub summon {
 	my ($self,$what) = @_;
 
 	return $self->gkcd->summon_the_goatman($what);
 }
 
-sub commandlist {
-	my ($self,$cmd) = @_;
-
-	my @methods;
-    if ($cmd) {
-        @methods = grep {$_->name eq $cmd} $self->meta->get_all_methods;
-    } else {
-        @methods = grep {$_->can("attributes") && scalar(@{$_->attributes})} $self->meta->get_all_methods;
-    }
-	my @ret = ();
-	foreach my $method (sort {$a->name cmp $b->name} @methods) {
-        if ($method->can("attributes")) {
-			my $rh = {
-				name=>$method->name,
-			};
-			foreach my $attr (@{$method->attributes}) {
-				my ($name,$value)  = ($attr=~/(Desc|Usage|Args)[(](.*?)[)]/i);
-				$rh->{lc($name)} = $value;
-			}
-			$rh->{args}||=0;
-			push(@ret,$rh);
-		}
-	}
-	return @ret;
-}
-
-sub arg_options {
-	my $self = shift;
-
-	return map {("$_->{name}"=>$_)} $self->commandlist;
-}
-
 sub commandline {
 	my ($self,@args) = @_;
 
-	my %options = $self->arg_options;
-    while (scalar(@args)) {
-        my $cmd = $args[0];
-        if (exists $options{$cmd}) {
-            my ($cmd,@a) = splice(@args,0,$options{$cmd}->{args}+1);
-			if (scalar(@a)<$options{$cmd}->{args}) {
-				die $self->print_usage($options{$cmd});
-			} else {
-				my $ret = $self->command($cmd,@a);
-				die $self->print_usage($options{$cmd}) if (!$ret);
-			} 
-        } else {
-			die "'$cmd' is not a valid command.";
+	while (scalar(@args)) {
+		my $cmd = shift @args;
+   	if (exists $self->commandlist->{$cmd}) {
+			my $command = $self->commandlist->{$cmd};
+    	my (@a) = splice(@args,0,$command->{args}+1);
+			
+    	if (scalar(@a)<$command->{args}) {
+    		die $self->print_usage($cmd,$command);
+    	} else {
+    		my $ret = $self->command($cmd,@a);
+      	die $self->print_usage($cmd,$command) if (!$ret);
+    	}
+    } else {
+      die "'$cmd' is not a valid command.";
 		}
-    }
+	}
 }
 
 sub show_usage {
@@ -236,21 +204,84 @@ sub show_usage {
 	my $name = shift;
 
 	say "What?\n";
-
-	foreach my $cmd ($self->commandlist($name)) {
-		$self->print_usage($cmd);
+	my $commands = $self->commandlist;
+	foreach my $cmd (keys %$commands) {
+		$self->print_usage($cmd,$commands->{$cmd});
 	}
 	return 0;
 }	
 
-sub print_usage {
+sub command_desc {
 	my ($self,$cmd) = @_;
+
+	return ($cmd,$self->commandlist->{$cmd});
+}
+
+
+sub print_usage {
+	my ($self,$cmd,$ch) = @_;
 	
-	say "\e[1m$cmd->{name}\e[0m \e[2m$cmd->{usage}\e[0m";
-    say "  ".$cmd->{desc};
+	say "\e[1m$cmd\e[0m \e[2m$ch->{usage}\e[0m";
+    say "  ".$ch->{desc};
     say "";
 	return "";
 }
+
+sub commandlist {
+	return {
+		'border' => {
+  		'usage' => '<thickness>',
+  		'desc' => 'Set panel border thickness',
+  		'args' => '1'
+  	},
+  	'quit' => {
+  		'desc' => 'Quit goatifying things ',
+  		'args' => 0,
+  		'usage' => '',
+  	},
+  	'stinger' => {
+  		'desc' => 'Use another image instead of our dear Mr. Johnson',
+  		'args' => '1',
+  		'usage' => '<file>',
+  	},
+  	'random' => {
+  		'desc' => 'Show random comic',
+  		'args' => '2',
+  		'usage' => '<start> <end>'
+  	},
+  	'save' => {
+  		'usage' => '<file|url> <output_file>',
+  		'desc' => 'Save Goatified Image',
+  		'args' => '2',
+  	},
+  	'show' => {
+  		'args' => '1',
+  		'desc' => 'Display Goatified Image',
+  		'usage' => '<file|url>'
+  	},
+  	'latest' => {
+  		'desc' => 'Latest Comic',
+  		'args' => 0,
+  		'usage' => '',
+  	},
+  	'comic' => {
+  		'desc' => 'Scrape directly from xkcd. 0 for latest',
+  		'args' => '1',
+  		'usage' => '<number>',
+  	},
+  	'beastmode' => {
+  		'usage' => '',
+  		'args' => 0,
+  		'desc' => 'Replace every panel'
+  	},
+  	'debug' => {
+  		'args' => 0,
+  		'desc' => 'Toggle debug messages',
+  		'usage' => ''
+  	}
+	};
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;
