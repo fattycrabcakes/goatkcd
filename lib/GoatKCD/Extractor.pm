@@ -137,13 +137,13 @@ sub extract {
 
 	$self->parent->log("rows",[@rows]);
 
-	@rows = $self->collapse_columns(@rows);
+	#@rows = $self->collapse_columns(@rows);
 	if ($self->consolidate_rows) {
 		@rows = $self->collapse_rows(sort {$a->[0]->[1]<=>$b->[0]->[1]} @rows);
 	}
 	
  	my $lastrow = $rows[$#rows];
-    my $lc = $lastrow->[scalar(@$lastrow)-1];
+  my $lc = $lastrow->[scalar(@$lastrow)-1];
 
 
 	return [@rows];

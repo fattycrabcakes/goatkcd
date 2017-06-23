@@ -77,9 +77,6 @@ sub summon_the_goatman {
 				my $row_height = $last_row->[3] - $last_row->[1];
 				my $bottom_padding = $bottom_edge - ($y_offset+$row_height);
 
-				#my $canvas_tmp = $canvas->Clone();
-				#$canvas_tmp->Crop(width=>$canvas->Get("width"),height=>$row_height+$bottom_padding,x=>0,y=>$y_offset);
-
 				$bottom_edge = $y_offset;
 				my $x_offset = 0;
 
@@ -90,7 +87,6 @@ sub summon_the_goatman {
 				if (defined $just_this_row && scalar(@$just_this_row)>1) {
 					my $jlp = $just_this_row->[scalar(@$just_this_row)-1];
 
-					#$canvas_tmp->Crop(width=>$jlp->[2]-$jlp->[0],height=>$jlp->[3]-$jlp->[1],x=>$jlp->[0],y=>$jlp->[1]);
 					my $last_column = $self->extract_rows($jlp);
 					$self->log("hey now",$last_column);
 					$jlp = $last_column->[0];
@@ -142,11 +138,15 @@ sub goatify {
 		$panels[0] = [8,8,$self->canvas->Get("width")-8,$self->canvas->Get("height")-8];
 
 	}
-
 	foreach my $rect (@panels) {
+
+		my ($rw,$rh) = ($rect->[2]-$rect->[0],$rect->[3]-$rect->[1]);
+		my $geometry = "$rw"."x$rh";
 		my $stinger_tmp = $self->stinger->Clone();
-		$stinger_tmp->Resize(geometry=>($rect->[2]-$rect->[0])."x".($rect->[3]-$rect->[1]."!"));
+
+		$stinger_tmp->Resize(geometry=>"$geometry!");
 		$self->canvas->Composite(image=>$stinger_tmp,x=>$rect->[0],y=>$rect->[1],compose=>"Over",gravity=>"NorthWest");
+
 		if ($self->border>0) {
 			$self->canvas->Draw(primitive=>"rectangle",stroke=>"#000000",fill=>"#00000000",,strokewidth=>$self->border,points=>join(",",@$rect));
 		}
@@ -286,9 +286,9 @@ sub load_canvas {
 
 	my $canvas = Image::Magick->new();
 
-   	$canvas->Set(size=>($w+$self->pad_by)."x".($h+$self->pad_by));
-   	$canvas->Read('xc:white');
-   	$canvas->Composite(image=>$tmp,compose=>"over",gravity=>"Center");
+  $canvas->Set(size=>($w+$self->pad_by)."x".($h+$self->pad_by));
+  $canvas->Read('xc:white');
+  $canvas->Composite(image=>$tmp,compose=>"over",gravity=>"Center");
 
 	$self->processor->load($self->mktmp($canvas));
 	$self->canvas($canvas);

@@ -92,7 +92,6 @@ sub border {
 sub beastmode {
 	my $self = shift;
 
-
 	my $t = $self->gkcd->toggle("beastmode");
 	say $t if (!$self->cl); 
 	return 1;
@@ -185,7 +184,10 @@ sub commandline {
 		my $cmd = shift @args;
    	if (exists $self->commandlist->{$cmd}) {
 			my $command = $self->commandlist->{$cmd};
-    	my (@a) = splice(@args,0,$command->{args}+1);
+			my @a;
+			if ($command->{args}) {
+    		@a = splice(@args,0,$command->{args});
+			}
 			
     	if (scalar(@a)<$command->{args}) {
     		die $self->print_usage($cmd,$command);
