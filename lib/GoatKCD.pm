@@ -39,6 +39,7 @@ has auto_goatify=>(is=>'rw',,default=>sub { 1; });
 has maxheight=>(is=>'rw',,default=>sub { 640; });
 has border=>(is=>'rw',,default=>sub { 1; });
 has error=>(is=>'rw',default=>sub { 0; });
+has is_color=>(is=>'rw',default=>sub {0});
 
 sub summon_the_goatman {
 	my ($self,$path) = @_;
@@ -46,6 +47,9 @@ sub summon_the_goatman {
 	$self->reset();
 	my $canvas = $self->load_canvas($path);
 	return undef if (!$canvas);
+	$self->time_op('Getting Colors',sub {
+		$self->is_color(($self->colorcount($canvas)>256)?1:0);
+	});
 
 	my $rows;
 	my $y_offset = 0;
@@ -395,6 +399,22 @@ sub set_stinger {
 	my ($self,$file) = @_;
 
 	$self->stinger($self->load_img($file));
+}
+
+sub colorcount {
+	my ($self,$canvas) = @_;
+
+	my ($w,$h) = $canvas->Get('width','height');
+	my $multiplier = 0.15;
+
+	my $ci = $canvas->Clone();
+
+	
+	$ci->Crop(x=>($w/2)-(($w*$multiplier)/2),y=>(($h/2)-($h*$multiplier)/2),width=>$w*$multiplier,height=>$h*$multiplier);
+
+	my $count = $ci->Get('colors');
+	undef $ci;
+	return $count;
 }
 
 sub is_irregular {
