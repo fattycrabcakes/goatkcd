@@ -47,9 +47,7 @@ sub summon_the_goatman {
 	$self->reset();
 	my $canvas = $self->load_canvas($path);
 	return undef if (!$canvas);
-	$self->time_op('Getting Colors',sub {
-		$self->is_color(($self->colorcount($canvas)>256)?1:0);
-	});
+	$self->is_color(($self->colorcount($canvas)>256)?1:0);
 
 	my $rows;
 	my $y_offset = 0;
