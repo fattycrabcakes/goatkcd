@@ -94,7 +94,7 @@ sub extract {
 	$self->parent->log("lines",$lines);
 
 	my $open=0;
-	foreach my $line (sort {$a->[0]<=>$b->[0]} grep {abs($_->[0]-$_->[2])<=5} @$lines) {
+	foreach my $line (sort {$a->[0]<=>$b->[0]} grep {abs($_->[0]-$_->[2])<=3} @$lines) {
 		if (!$open) {
 			push(@v,$line);
 		} else {
