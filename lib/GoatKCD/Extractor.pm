@@ -4,12 +4,16 @@ use strict;
 use Data::Dumper;
 use feature qw(say);
 use Moo;
-
 with 'Timer';
 with 'Toggler';
 
-use GoatKCD::Extractor::OpenCV;
+our $VERSION = "6.6.6";
+our $ABSTRACT="💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩";
+#use GoatKCD::Extractor::OpenCV;
 use List::Util qw(min max uniqnum);
+use XSLoader;
+
+XSLoader::load("GoatKCD::Extractor",$VERSION);
 
 has min_line_length => (is=>'rw',,default=>sub { 20; });
 has max_line_gap => (is=>'rw',,default=>sub { 25; });
@@ -28,15 +32,8 @@ has consolidate_rows=>(is=>'rw',default=>sub { 0; });
 sub load {
 	my ($self,$imgpath) = @_;
 
-	$self->cvImage(GoatKCD::Extractor::OpenCV::load_img($imgpath));
-}
+	my $ret = $self->load_img($imgpath);
 
-sub reset {
-	my ($self) = @_;
-
-	if ($self->cvImage) {
-		#GoatKCD::Extractor::OpenCV::release_img($self->cvImage);
-	}
 }
 
 sub extract {
@@ -50,7 +47,7 @@ sub extract {
 
 	#my $data = GoatKCD::Extractor::OpenCV::getlines($imgpath,$self->min_line_length,$self->rho,$self->theta,$self->threshold);
 	my $data;
-	$data = GoatKCD::Extractor::OpenCV::getlines($self,$self->cvImage,{
+	$data = $self->getlines({
 		x=>$self->x,
 		y=>$self->y,
 		width=>$self->width,

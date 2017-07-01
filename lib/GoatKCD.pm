@@ -315,7 +315,6 @@ sub cleartmp {
 sub reset {
 	my $self = shift;
 	
-	$self->processor->reset();
 	$self->rows([]);
 }
 
