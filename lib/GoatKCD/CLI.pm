@@ -16,10 +16,23 @@ has gkcd=>(is=>'ro',default=>sub { GoatKCD->new();});
 has term=>(is=>'ro',default=>sub { Term::ReadLine->new()});
 has cl=>(is=>'rw',default=>0);
 
+sub main {
+    my $self = shift;
+
+    while (1) {
+        my $line = $self->term->readline("Command> ");
+        if (length($line)) {
+            my ($command,@args) = split(/\s+/,$line);
+            $self->command($command,@args);
+        }
+    }
+}
+
+
 sub command {
 	my ($self,$command,@args) = @_;
 
-	my ($sub) = $self->commandlist->{$command};
+	my ($sub) = $self->command_def($command);
     if ($sub) {
     	$self->$command(@args);
     } else {
@@ -27,16 +40,24 @@ sub command {
     }
 }
 
-sub main {
-	my $self = shift;
+sub commandline {
+    my ($self,@args) = @_;
 
-	while (1) {
-		my $line = $self->term->readline("Command> ");
-		if (length($line)) {
-			my ($command,@args) = split(/ /,$line);
-			$self->command($command,@args);
-		}
-	}
+    ARGLOOP: while (scalar(@args)) {
+        my $cmd = $self->command_with_args(shift @args,\@args);
+        my $method = $cmd->{name};
+		say $method;
+        if ($cmd->{name} eq "repeat") {
+			my $ncd= shift(@args);
+            my $scmd = $self->command_with_args($ncd,\@args);
+            my $smethod = $scmd->{name};
+            for (my $i=0;$i<$cmd->{args}->[0];$i++) {
+                $self->$smethod(@{$scmd->{args}});
+            }
+        } else {
+            $self->$method(@{$cmd->{args}});
+        }
+    }
 }
 
 sub quit  {
@@ -73,7 +94,7 @@ sub save {
 				$self->gkcd->save($output);
 			});
 	} else {
-		die "$file is not valid.";
+		warn "$file is not valid.";
 	}
 	return 1;
 }
@@ -177,46 +198,51 @@ sub summon {
 	return $self->gkcd->summon_the_goatman($what);
 }
 
-sub commandline {
-	my ($self,@args) = @_;
+sub command_with_args {
+	my ($self,$cmd,$args) = @_;
 
-	while (scalar(@args)) {
-		my $cmd = shift @args;
-   	if (exists $self->commandlist->{$cmd}) {
-			my $command = $self->commandlist->{$cmd};
-			my @a;
-			if ($command->{args}) {
-    		@a = splice(@args,0,$command->{args});
-			}
-			
-    	if (scalar(@a)<$command->{args}) {
-    		die $self->print_usage($cmd,$command);
-    	} else {
-    		my $ret = $self->command($cmd,@a);
-      	die $self->print_usage($cmd,$command) if (!$ret);
-    	}
-    } else {
-      die "'$cmd' is not a valid command.";
-		}
+	my $def= $self->command_def($cmd);
+	return undef if (!defined $cmd);
+	my $ret = {name=>$cmd,args_expected=>$def->{args},args=>[]};
+	if (!$def) {
+		$self->show_usage();
+		exit(1);
 	}
+	if ($def->{args}) {
+		my @a = splice(@$args,0,$def->{args});
+		if (scalar(@a)<$def->{args}) {
+			$self->show_usage($cmd);
+			exit(1);
+		}
+		push(@{$ret->{args}},@a);
+	}
+	return $ret;
 }
+	
+
+	
+	
+	
 
 sub show_usage {
 	my $self = shift;
 	my $name = shift;
 
-	say "What?\n";
 	my $commands = $self->commandlist;
+	if (defined $name) {
+		$self->print_usage($name,$commands->{$name});
+		return 0;
+	}
 	foreach my $cmd (keys %$commands) {
 		$self->print_usage($cmd,$commands->{$cmd});
 	}
 	return 0;
 }	
 
-sub command_desc {
+sub command_def {
 	my ($self,$cmd) = @_;
 
-	return ($cmd,$self->commandlist->{$cmd});
+	return $self->commandlist->{$cmd};
 }
 
 
@@ -235,52 +261,57 @@ sub commandlist {
   		'usage' => '<thickness>',
   		'desc' => 'Set panel border thickness',
   		'args' => '1'
-  	},
-  	'quit' => {
-  		'desc' => 'Quit goatifying things ',
-  		'args' => 0,
-  		'usage' => '',
-  	},
-  	'stinger' => {
-  		'desc' => 'Use another image instead of our dear Mr. Johnson',
-  		'args' => '1',
-  		'usage' => '<file>',
-  	},
-  	'random' => {
-  		'desc' => 'Show random comic',
-  		'args' => '2',
-  		'usage' => '<start> <end>'
-  	},
-  	'save' => {
-  		'usage' => '<file|url> <output_file>',
-  		'desc' => 'Save Goatified Image',
-  		'args' => '2',
-  	},
-  	'show' => {
-  		'args' => '1',
-  		'desc' => 'Display Goatified Image',
-  		'usage' => '<file|url>'
-  	},
-  	'latest' => {
-  		'desc' => 'Latest Comic',
-  		'args' => 0,
-  		'usage' => '',
-  	},
-  	'comic' => {
-  		'desc' => 'Scrape directly from xkcd. 0 for latest',
-  		'args' => '1',
-  		'usage' => '<number>',
-  	},
-  	'beastmode' => {
-  		'usage' => '',
-  		'args' => 0,
-  		'desc' => 'Replace every panel'
-  	},
-  	'debug' => {
-  		'args' => 0,
-  		'desc' => 'Toggle debug messages',
-  		'usage' => ''
-  	}
+  		},
+  		'quit' => {
+  			'desc' => 'Quit goatifying things ',
+  			'args' => 0,
+  			'usage' => '',
+  		},
+  		'stinger' => {
+  			'desc' => 'Use another image instead of our dear Mr. Johnson',
+  			'args' => '1',
+  			'usage' => '<file>',
+  		},
+  		'random' => {
+  			'desc' => 'Show random comic',
+  			'args' => '2',
+  			'usage' => '<start> <end>'
+  		},
+  		'save' => {
+  			'usage' => '<file|url> <output_file>',
+  			'desc' => 'Save Goatified Image',
+  			'args' => '2',
+  		},
+  		'show' => {
+  			'args' => '1',
+  			'desc' => 'Display Goatified Image',
+  			'usage' => '<file|url>'
+  		},
+  		'latest' => {
+  			'desc' => 'Latest Comic',
+  			'args' => 0,
+  			'usage' => '',
+  		},
+  		'comic' => {
+  			'desc' => 'Scrape directly from xkcd. 0 for latest',
+  			'args' => '1',
+  			'usage' => '<number>',
+  		},
+  		'beastmode' => {
+  			'usage' => '',
+  			'args' => 0,
+  			'desc' => 'Replace every panel'
+  		},
+  		'debug' => {
+  			'args' => 0,
+  			'desc' => 'Toggle debug messages',
+  			'usage' => ''
+  		},
+		'repeat' => {
+			args=> 1,
+			desc => "Repeat next command X times",
+			usage => '<repeat count>'
+		},
 	};
 }
 

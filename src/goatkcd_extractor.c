@@ -12,11 +12,11 @@ void showImage(IplImage* img,const char* title) {
   	cvShowImage( title, img );
   	cvWaitKey(0);
 }
-int get_int(HV* hash,const char* k,int kl) {
-	if (!hv_exists(hash,k,kl)) {
+int get_param_int(HV* hash,const char* k) {
+	if (!hv_exists(hash,k,strlen(k))) {
 		return 0;
 	} else {
-		SV** res  = hv_fetch(hash,k,kl,0);
+		SV** res  = hv_fetch(hash,k,strlen(k),0);
 		return SvIV(res[0]);
 	}
 }
@@ -27,11 +27,13 @@ SV* process_lines(SV* obj,SV* p) {
 	HV* extractor = (HV*)SvRV(obj);
 	HV* params = (HV*)SvRV(p);
 
-	int x = get_int(params,"x",1);
-	int y = get_int(params,"y",1);
-	int width = get_int(params,"width",5);
-	int height = get_int(params,"height",6);
-	int mode = get_int(params,"mode",4);
+	int x = get_param_int(params,"x");
+	int y = get_param_int(params,"y");
+	int width = get_param_int(params,"width");
+	int height = get_param_int(params,"height");
+	int mode = get_param_int(params,"mode");
+	int methor = get_param_int(params,"mode");
+	
 
 	SV* retval = newSV(0);
 	if(input==NULL) {
@@ -84,10 +86,11 @@ SV* process_lines(SV* obj,SV* p) {
   	int count = cvFindContours(bw, storage, &contours, sizeof(CvContour), CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0));
 	cvReleaseImage(&bw);
 
+	AV* parallelograms = newAV();
+
   	if (1) {
  		for(; contours!=0; contours = contours->h_next) {
   			CvRect rect = cvBoundingRect(contours,0);
-			/* delete detected shapes from outlines to reduce noise. */
     		if (contours->total>=CONTOUR_COMPLEXITY) {
 				if (mode==BW) {
       				cvDrawContours(gray,contours,CV_RGB(0,0,0),CV_RGB(0,0,0),0,-1,8,cvPoint(0,0));
@@ -102,13 +105,22 @@ SV* process_lines(SV* obj,SV* p) {
 						rect.y+rect.height-SHRINK_BY),CV_RGB(0,0,0),2,8,0
 					);
 				}
+			} else if (contours->total==4) {
+				if (rect.width>100 && rect.height>100) {
+					AV* frame = newAV();
+					av_push(frame,newSViv(rect.x));
+					av_push(frame,newSViv(rect.y));
+					av_push(frame,newSViv(rect.width));
+					av_push(frame,newSViv(rect.height));
+					av_push(parallelograms,newRV((SV*)frame));
+				}
 			}
     	}
 	}
 
-		//showImage(gray,"gray");
-		
 	HV* data = newHV();
+	hv_stores(data,"contur_rect",newRV((SV*)parallelograms));
+
 	AV* slines = newAV();
 	cvClearMemStorage(storage);
     CvSeq* lines = cvHoughLines2( gray, storage, CV_HOUGH_STANDARD, 1, CV_PI/180, 50, 50, 10 );
@@ -157,8 +169,11 @@ int load_image(SV* caller,const char* filename) {
 	}
 }
 void release_image(IplImage* img) {
-	if (input==NULL) {
+	if (img==NULL) {
 		return;
 	}
 	cvReleaseImage(&input);
 }
+	
+	
+

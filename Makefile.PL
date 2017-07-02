@@ -1,5 +1,6 @@
 use 5.008005;
 use ExtUtils::MakeMaker 7.12; # for XSMULTI option
+use FindBin;
 
 
 WriteMakefile(
@@ -13,6 +14,8 @@ WriteMakefile(
 	'URI'=>0,
     'HTTP::Message'=>0,
     'List::Util'=> 1.47,
+	'Moo'=>0,
+	'Mouse'=>0,
 	'Moose'=>0,
 	'Moose::Role'=>0,
 	'MooseX::MethodAttributes'=>0,
@@ -30,7 +33,8 @@ WriteMakefile(
   OPTIMIZE       => '-O3',
   LICENSE        => 'unlicensed',
   XSMULTI        => 1,
-  TYPEMAPS		=>["lib/typemap"],
+  TYPEMAPS		=>["src/typemap"],
   "EXE_FILES"	=>["scripts/goatify"],
+  "INC"			=> "-I$FindBin::Bin/src",
   dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
 );

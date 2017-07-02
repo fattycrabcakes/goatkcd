@@ -12,7 +12,6 @@ our $ABSTRACT="💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩�
 #use GoatKCD::Extractor::OpenCV;
 use List::Util qw(min max uniqnum);
 use XSLoader;
-
 XSLoader::load("GoatKCD::Extractor",$VERSION);
 
 has min_line_length => (is=>'rw',,default=>sub { 20; });
@@ -54,6 +53,7 @@ sub extract {
 		height=>$self->height,
 		mode=>$self->parent->is_color
 	});
+
 
 	my $lines = $data->{lines};
 	my $checklines = {};

@@ -102,7 +102,6 @@ sub summon_the_goatman {
 				
 				# final sanity check on last column
 
-
 				unless ($self->beastmode) {
 					last ROWLOOP;
 				}
