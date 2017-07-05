@@ -3,7 +3,8 @@
 #include "XSUB.h"
 #undef seed
 
-#include "goatkcd_extractor.c"
+#include "goatkcd_extractor.h"
+
 
 MODULE = GoatKCD::Extractor PACKAGE = GoatKCD::Extractor
 PROTOTYPES: DISABLE
