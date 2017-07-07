@@ -7,7 +7,8 @@ lib/GoatKCD/Extractor.pm
 lib/GoatKCD/Extractor.xs
 lib/Timer.pm
 lib/Toggler.pm
-lib/typemap
 Makefile.PL
 README.md
 scripts/goatify
+META.yml
+META.json

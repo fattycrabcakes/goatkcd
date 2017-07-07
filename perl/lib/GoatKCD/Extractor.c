@@ -7,15 +7,10 @@
  */
 
 #line 1 "lib/GoatKCD/Extractor.xs"
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#undef seed
-
+#define PERL
 #include "goatkcd_extractor.h"
 
-
-#line 19 "lib/GoatKCD/Extractor.c"
+#line 14 "lib/GoatKCD/Extractor.c"
 #ifndef PERL_UNUSED_VAR
 #  define PERL_UNUSED_VAR(var) if (0) var = var
 #endif
@@ -159,7 +154,7 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 #  define newXS_deffile(a,b) Perl_newXS_deffile(aTHX_ a,b)
 #endif
 
-#line 163 "lib/GoatKCD/Extractor.c"
+#line 158 "lib/GoatKCD/Extractor.c"
 
 XS_EUPXS(XS_GoatKCD__Extractor_getlines); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_GoatKCD__Extractor_getlines)
@@ -173,9 +168,9 @@ XS_EUPXS(XS_GoatKCD__Extractor_getlines)
 	SV*	params = ST(1)
 ;
 	SV *	RETVAL;
-#line 16 "lib/GoatKCD/Extractor.xs"
+#line 11 "lib/GoatKCD/Extractor.xs"
 		RETVAL = process_lines(extractor,params);
-#line 179 "lib/GoatKCD/Extractor.c"
+#line 174 "lib/GoatKCD/Extractor.c"
 	RETVAL = sv_2mortal(RETVAL);
 	ST(0) = RETVAL;
     }
@@ -196,9 +191,9 @@ XS_EUPXS(XS_GoatKCD__Extractor_load_img)
 ;
 	int	RETVAL;
 	dXSTARG;
-#line 24 "lib/GoatKCD/Extractor.xs"
+#line 19 "lib/GoatKCD/Extractor.xs"
 		RETVAL = load_image(extractor,file);
-#line 202 "lib/GoatKCD/Extractor.c"
+#line 197 "lib/GoatKCD/Extractor.c"
 	XSprePUSH; PUSHi((IV)RETVAL);
     }
     XSRETURN(1);
@@ -226,9 +221,9 @@ XS_EUPXS(XS_GoatKCD__Extractor_release_img)
 		Perl_croak(aTHX_ "%s is not of type %s in %s",
 			"img", "IplImage *", "GoatKCD::Extractor::release_img")
 ;
-#line 32 "lib/GoatKCD/Extractor.xs"
+#line 27 "lib/GoatKCD/Extractor.xs"
 		release_image(img);
-#line 232 "lib/GoatKCD/Extractor.c"
+#line 227 "lib/GoatKCD/Extractor.c"
 	XSprePUSH; PUSHi(PTR2IV(RETVAL));
     }
     XSRETURN(1);

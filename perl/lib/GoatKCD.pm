@@ -14,7 +14,7 @@ use Try::Tiny;
 use List::Util;
 use Image::ExifTool;
 use JSON::XS;
-use Moo;
+use Mouse;
 
 with 'Timer';
 with 'Toggler';
@@ -40,6 +40,14 @@ has maxheight=>(is=>'rw',,default=>sub { 640; });
 has border=>(is=>'rw',,default=>sub { 1; });
 has error=>(is=>'rw',default=>sub { 0; });
 has is_color=>(is=>'rw',default=>sub {0});
+
+sub BUILD {
+	my ($self,$args) = @_;
+
+	my $stinger = $args->{stinger}||"/usr/share/goatkcd/hello.jpg";
+
+	$self->load_img("$stinger");
+}
 
 sub summon_the_goatman {
 	my ($self,$path) = @_;

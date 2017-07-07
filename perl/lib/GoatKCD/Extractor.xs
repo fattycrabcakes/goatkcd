@@ -1,10 +1,5 @@
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#undef seed
-
+#define PERL
 #include "goatkcd_extractor.h"
-
 
 MODULE = GoatKCD::Extractor PACKAGE = GoatKCD::Extractor
 PROTOTYPES: DISABLE

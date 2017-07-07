@@ -1,3 +1,14 @@
+#include "EXTERN.h"
+#include "perl.h"
+#include "XSUB.h"
+#undef seed
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
+#include <opencv2/highgui/highgui_c.h>
+#include <opencv2/imgproc/imgproc_c.h>
+#include <math.h>
+#include <stdio.h>
+
 #define MORPH_ELLIPSE   2
 #define MORPH_GRADIENT  4
 #define MORPH_RECT  0
@@ -11,16 +22,6 @@
 #define CONTOUR_COMPLEXITY 16
 #define METHOD_LINES 0
 #define METHOD_CONTOURS 1
-
-typedef struct goat_extractor_params {
-	int x;
-	int y;
-	int width;
-	int height;
-	int mode;
-	int method;
-} goat_extractor_params;
-
 
 void showImage(IplImage* img,const char* title);
 int get_param_int(HV* hash,const char* k);
