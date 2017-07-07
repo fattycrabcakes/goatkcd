@@ -1,5 +1,4 @@
 output
-_Inline
 originals
 blib
 special_cases
@@ -8,6 +7,7 @@ dependencies
 *.swp
 *.o
 scratch
-Makefile
 Makefile.old
 pm_to_blib
+_build
+Build
