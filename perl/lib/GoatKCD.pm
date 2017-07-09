@@ -3,7 +3,7 @@ package GoatKCD;
 use strict;
 use GoatKCD::Extractor;
 use GoatKCD::Extractor::OpenCV;
-use LWP::UserAgent;
+use LWP::Curl;
 use HTTP::Message;
 use File::Type;
 use Image::Magick;
@@ -22,7 +22,7 @@ use Time::HiRes;
 
 use feature qw(say);
 
-our $VERSION = "1.0.0";
+our $VERSION = "6.6.6";
 $Data::Dumper::Indent = 0;
 $Data::Dumper::Terse=1;
 
@@ -72,7 +72,7 @@ sub summon_the_goatman {
 		if ($self->average_columns>1) {
 			my $rowcount = scalar(@$rows);
 
-			# Each row may not have identical panel count/dimension. Process each one indivually.
+			# Each row may not have identical panel count/dimension. Process each one indivu-ally.
 			ROWLOOP: for (my $i=scalar(@$rows)-1;$i>=0;$i--) {
 				my $last_row = $rows->[$i]->[0];
 				my $nexttolast_row = $rows->[$i-1]->[0];
@@ -238,18 +238,21 @@ sub load_img {
 	} elsif ($data=~/^(?:http|https|\/\/)/i) {
 		try {
 			if ($data=~/^\/\//) {
-				$data="http:";
+				$data="https:$data";
 			}
-			my $ua = LWP::UserAgent->new();
-			$ua->agent('Mozilla/5.0 (X11; U; Linux x86_64; en-US) AppleWebKit/532.0 (KHTML, like Gecko) Chrome/4.0.202.0 Safari/532.0');
-    		my $res = $ua->get($data,'Accept-Encoding'=>HTTP::Message::decodable);
+			my $ua = LWP::Curl->new();
+			my $res;
+			try {
+    			$res = $ua->get($data);
+			} catch {
+			};
 
-			if (!$res->is_success) {
+			if (!$res) {
 				$self->error(1);
-				$self->log("error",$res->status_line);
+				$self->log("error",$res);
 			} else {
-				if (File::Type->new()->checktype_contents($res->decoded_content)=~/^image/i) {
-					$img->BlobToImage($res->decoded_content);
+				if (File::Type->new()->checktype_contents($res)=~/^image/i) {
+					$img->BlobToImage($res);
 				}
 			}
 		} catch {

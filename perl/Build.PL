@@ -6,6 +6,7 @@ my $builder = Module::Build->new(
 	module_name    => 'GoatKCD',
    	license        => 'perl',
    	dist_author    => ['Fatty Crabcakes'],
+	dist_version_from => "lib/GoatKCD/Extractor.pm",
    	needs_compiler => 1,
    	configure_requires => {
    		'Config::AutoConf'   => '0.14',
@@ -14,8 +15,7 @@ my $builder = Module::Build->new(
    		'Module::Build'      => '0.3603',
    	},
 	requires => {
-		'ExtUtils::MakeMaker' => '7.12',
-    	'LWP::UserAgent'=>0,
+    	'LWP::Curl'=>0,
     	'Image::Magick'=>0,
     	'Web::Scraper'=>0,
     	'URI'=>0,
@@ -33,13 +33,18 @@ my $builder = Module::Build->new(
     	'JSON::XS'=>0,
     	'File::Type'=>0,
 	},
+
 	libdir   => "./lib",
-    extra_compiler_flags => '-I/usr/local/include', # We're going to assume everyone is at least that modern
+    extra_compiler_flags => '-I/usr/local/include', 
 	extra_linker_flags=>[qw(-lopencv_imgproc -lopencv_core -lopencv_highgui)],
+
 	config=>{cc => 'gcc', ld => 'gcc'},
     include_dirs => '../src/',
-    c_source     => ['../src/goatkcd_extractor.c'],
+    c_source     => ['../src/'],
+	scripts => ["scripts/goatify"],
+	install_path=>{"asset"=>"/usr/share/goatkcd","script"=>"/usr/local/bin"},
+	asset_files=>{"../assets/hello.jpg"=>"asset/hello.jpg"},
 );
-
+$builder->add_build_element("asset");
 $builder->create_build_script();
 

@@ -19,11 +19,3 @@ int load_img(extractor,file)
 		RETVAL = load_image(extractor,file);
 	OUTPUT:
 		RETVAL
-
-void* release_img(caller,img)
-	SV* caller;
-	IplImage* img;
-	CODE:
-		release_image(img);
-	OUTPUT:
-		RETVAL

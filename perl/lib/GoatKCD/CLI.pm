@@ -5,6 +5,7 @@ use Modern::Perl;
 use Data::Dumper;
 use Term::ReadLine;
 use Web::Scraper;
+use LWP::Curl;
 use URI;
 use Try::Tiny;
 use feature qw(say);
@@ -15,6 +16,7 @@ $Data::Dumper::Indent = 1;
 has gkcd=>(is=>'ro',default=>sub { GoatKCD->new();});
 has term=>(is=>'ro',default=>sub { Term::ReadLine->new()});
 has cl=>(is=>'rw',default=>0);
+has ua=>(is=>'rw',default=>sub {LWP::Curl->new() });
 
 sub main {
     my $self = shift;
@@ -46,7 +48,6 @@ sub commandline {
     ARGLOOP: while (scalar(@args)) {
         my $cmd = $self->command_with_args(shift @args,\@args);
         my $method = $cmd->{name};
-		say $method;
         if ($cmd->{name} eq "repeat") {
 			my $ncd= shift(@args);
             my $scmd = $self->command_with_args($ncd,\@args);
@@ -158,20 +159,24 @@ sub comic {
 		return $self->show_usage("comic");
 	}
 
-	my $res;
+	my $html;
 	try {
-		$res = scraper {
-			process 'div#comic img',img=>'@src';
-		}->scrape(URI->new(sprintf("https://xkcd.com/%s",($id)?$id:'')));
-	} catch {
-		say STDERR "Unable to load!";
+		$html = $self->ua->get(sprintf("https://xkcd.com/%s",($id)?$id:''));
+	 } catch {
+		say STDERR 'woops!';
+		return 0;
 	};
+	my $res = scraper {
+		process 'div#comic img',img=>'@src';
+	}->scrape($html);
+
 	if (!$res) {
-		return 1;
+		return 0;
 	}
-	
+
 	$self->summon($res->{img})->Display();
 	return 1;
+
 }
 
 sub latest {
