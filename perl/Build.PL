@@ -32,10 +32,11 @@ my $builder = Module::Build->new(
     	'Term::ReadLine'=>0,
     	'JSON::XS'=>0,
     	'File::Type'=>0,
+	'Image::ExifTool'=>0,
 	},
 
 	libdir   => "./lib",
-    extra_compiler_flags => '-I/usr/local/include', 
+    extra_compiler_flags => '-I/usr/local/include -O4 -g', 
 	extra_linker_flags=>[qw(-lopencv_imgproc -lopencv_core -lopencv_highgui)],
 
 	config=>{cc => 'gcc', ld => 'gcc'},

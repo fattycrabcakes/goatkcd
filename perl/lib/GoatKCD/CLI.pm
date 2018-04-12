@@ -9,12 +9,12 @@ use LWP::Curl;
 use URI;
 use Try::Tiny;
 use feature qw(say);
-use Moo;
+use Moose;
 
 $Data::Dumper::Indent = 1;
 
 has gkcd=>(is=>'ro',default=>sub { GoatKCD->new();});
-has term=>(is=>'ro',default=>sub { Term::ReadLine->new()});
+has term=>(is=>'ro',default=>sub { Term::ReadLine->new('boners')});
 has cl=>(is=>'rw',default=>0);
 has ua=>(is=>'rw',default=>sub {LWP::Curl->new() });
 

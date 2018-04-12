@@ -2,7 +2,7 @@ package GoatKCD;
 
 use strict;
 use GoatKCD::Extractor;
-use GoatKCD::Extractor::OpenCV;
+#use GoatKCD::Extractor::OpenCV;
 use LWP::Curl;
 use HTTP::Message;
 use File::Type;

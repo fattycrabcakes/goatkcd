@@ -118,7 +118,7 @@ SV* process_lines(SV* obj,SV* p) {
 
 	AV* slines = newAV();
 	cvClearMemStorage(storage);
-    CvSeq* lines = cvHoughLines2( gray, storage, CV_HOUGH_STANDARD, 1, CV_PI/180, 50, 50, 10 );
+    CvSeq* lines = cvHoughLines2( gray, storage, CV_HOUGH_STANDARD, 1, CV_PI/180, 50, 50, 10,0,CV_PI );
     for(int i = 0; i < MIN(lines->total,100); i++ ) {
         float* line = (float*)cvGetSeqElem(lines,i);
         float rho = line[0];
@@ -148,7 +148,7 @@ SV* process_lines(SV* obj,SV* p) {
 	cvReleaseImage(&src);
 	cvReleaseMemStorage(&storage);
 	cvReleaseStructuringElement(&kernel);
-	cvReleaseMemStorage(&contours);
+	cvReleaseMemStorage((CvMemStorage**)contours);
 
 	return newRV((SV*)data);
 }
